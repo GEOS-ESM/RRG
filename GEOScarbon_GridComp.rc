@@ -1,0 +1,16 @@
+#
+#  CH4 main resource file defining the particular instances.
+#
+#  For detailed description consult:
+#
+#  <<ReadTheDocs>>
+
+CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot
+ CO_instances: bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
+CO2_instances: biomass ff nep ocn
+
+# A tabular format is preferred above. It would allow several things
+# - fine control over each instance when it is declared
+# - easier-to-read-&-see functionality
+# - The ability to add comments to each instance
+# - ESMF routines for reading multiple pieces of info from a single line is not mature

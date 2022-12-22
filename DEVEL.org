@@ -1,0 +1,26 @@
+#+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
+Development notes:
+* Open Questions:
+** How to control if a species itself is active?
+   Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
+** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
+* TODO Error control     
+* IN-PROGRESS Initialization
+** Interface
+   Keep everything runtime controlled. As much as possible.
+*** Config
+**** Read in instances
+     Convert to list? As a line of entries, it is compact.
+**** Read in passives
+     What if name in passive list isn't an instance? Error out. %%%
+     
+* TODO Run
+** Surface
+** Chemistry
+** Aggregation for *_total()
+** What else?
+* TODO Finalize
+* TODO Features
+** coupling to other components
+** using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
+   currently relies on strings. String searches are wet blankets

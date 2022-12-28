@@ -10,10 +10,10 @@ module GEOScarbon_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
    use types_mod
    use global_mod
    use utils_mod
+   use geos_simplephotolysismod
    
    implicit none
    private
@@ -25,9 +25,9 @@ module GEOScarbon_GridCompMod
    ! with the gas module. Users can add new species to the system w/o
    ! having to add new code other than here in the main interface module.
    integer, save                  :: nCH4, nCO2, nCO ! number of instances
-   type(gas_instance), pointer    :: CO2(:)
-   type(gas_instance), pointer    ::  CO(:)
-   type(gas_instance), pointer    :: CH4(:)
+   type(gas_instance), pointer    :: CO2(:) => null()
+   type(gas_instance), pointer    ::  CO(:) => null()
+   type(gas_instance), pointer    :: CH4(:) => null()
    
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
@@ -191,6 +191,36 @@ contains
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationCenter,                  &
        RESTART    = MAPL_RestartSkip,     __RC__)
+
+!   Pressure at level edges
+!   ------------------
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'PLE',                                 &
+       LONG_NAME  = 'pressure_at_edges',                   &
+       UNITS      = 'Pa',                                  &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationEdge,                    &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+!   Pressure thickness
+!   ------------------
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'AIRDENS',                             &
+       LONG_NAME  = 'air_density',                         &
+       UNITS      = 'kg m-3',                              &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+!   O3 (mmr)
+!   ------------------
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'O3',                                  &
+       LONG_NAME  = 'ozone',                               &
+       UNITS      = 'kg kg-1',                             &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
 
 !==============================================================
 !  Read in config, etc
@@ -469,7 +499,7 @@ contains
 !============================================================================
 !   !Locals 
     character (len=ESMF_MAXSTR)          :: COMP_NAME
-    character (len=255)                  :: name
+    character (len=255)                  :: name, photFile
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
@@ -567,6 +597,14 @@ contains
        call ESMF_StateGet(internal, 'CH4_'//trim(CH4(i)%name), field, __RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', (/0,0,0,0/), __RC__)
     enddo
+
+    call ESMF_ConfigFindLabel(cfg,label='photolysisFile:',rc=status)
+    VERIFY_(STATUS) 
+    call ESMF_ConfigGetAttribute(cfg,photfile,rc=status)
+    VERIFY_(STATUS) 
+    call readPhotTables( trim(photfile), params%km, status )
+    VERIFY_(STATUS) 
+
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
 !    allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
@@ -604,7 +642,7 @@ contains
     type (ESMF_Grid)                  :: grid
     type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
 
-    integer i,n
+    integer i,j,k,n
 
     type(ESMF_Time)                   :: time
     integer                           :: iyr, imm, idd, ihr, imn, isc
@@ -612,6 +650,14 @@ contains
     integer                           :: iCO2, iCH4, iCO
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical :: first = .true.
+
+    real, pointer, dimension(:,:,:) :: O3
+    real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
+    real(ESMF_KIND_R4), allocatable :: SLR(:,:)
+    type (MAPL_SunOrbit)            :: ORBIT
+    type(ESMF_Alarm)                :: ALARM
+
+    real                            :: r
 
    __Iam__('Run1')
 
@@ -630,6 +676,7 @@ contains
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
 !   Get current time
 !   -----------------------------------
@@ -653,57 +700,73 @@ contains
     call MAPL_GetPointer(import,met%v10m, 'V10M', __RC__) ! v10
     call MAPL_GetPointer(import,met%T,    'T',    __RC__) ! T
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
+    call MAPL_GetPointer(import,met%zle,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
     call MAPL_GetPointer(import,met%qctot,'QCTOT',__RC__) ! qtot
+    call MAPL_GetPointer(import,met%rho,'AIRDENS',__RC__) ! rho
+    CALL MAPL_GetPointer(import,     O3,    'O3', __RC__)
+
+    allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
+    allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
+    allocate(  met%o3col(params%im,params%jm,params%km), __STAT__)
+    allocate(  met%photj, mold=met%o3col, __STAT__)
+
+!  Update solar zenith angle
+!  --------------------------
+    call MAPL_SunGetInsolation(params%lons, params%lats, orbit, met%cosz, met%slr, clock=clock, __RC__)
+
+!  Compute the O3 column
+!  ---------------------
+   r = 6.022e26*0.50/(28.97*9.8) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90
+   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r
+   DO k=2,params%km
+      met%O3col(:,:,k) = met%O3col(:,:,k-1) + &
+                               (O3(:,:,k-1) * met%delp(:,:,k-1) + &
+                                O3(:,:,  k) * met%delp(:,:,  k))*r
+   END DO
+   
+!  Compute the photolysis rate for CO2 + hv -> CO + O*
+   do k=1,params%km
+   do j=1,params%jm
+   do i=1,params%im
+      call jcalc4(i,j,params%km-k+1,met,met%photj(i,j,k))
+   enddo
+   enddo
+   enddo
 
 ! Get the instance data pointers
     do i=1,total_instances
        call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
+       allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
     enddo
 
-!   Aggregate instances into the totals prior to operations
-    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__) 
-    CO2_total = CO2(1)%data3d
-    do i = 2,nCO2
-       CO2_total = CO2_total + CO2(i)%data3d
-    enddo
+!   Get pointers to the aggregates/totals
+    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
+    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+
+    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
+    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+
     call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
-    CH4_total = CH4(1)%data3d
-    do i = 2,nCH4
-       CH4_total = CH4_total + CH4(i)%data3d
-    enddo
-    call MAPL_GetPointer(internal, CO_total, 'CO_total', __RC__) 
-    CO_total = CO(1)%data3d
-    do i = 2,nCO
-       CO_total  = CO_total  + CO(i)%data3d
-    enddo
+    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+
+!   Aggregate instances into the totals prior to operations
+    call util_aggregate( RC )
 
     if (associated(sfc_flux)) then ! are there even any fluxes to compute?
 !   Surface fluxes
 !   -- fill the pointers. This is ESMF/MAPL specific, so it's a local routine
        call fillFluxfromESMF( import, sfc_flux, __RC__ )
-
-!   -- integrate the fluxes (all instances are done at once)
-       call surface_integrateflux( sfc_flux, met, params, __RC__)
-
     endif
 
 !   Aggregate instances into the totals after operations
-    CO2_total = CO2(1)%data3d
-    do i = 2,nCO2
-       CO2_total = CO2_total + CO2(i)%data3d
-    enddo
-    CH4_total = CH4(1)%data3d
-    do i = 2,nCH4
-       CH4_total = CH4_total + CH4(i)%data3d
-    enddo
-    CO_total = CO(1)%data3d
-    do i = 2,nCO
-       CO_total  = CO_total  + CO(i)%data3d
-    enddo
-
+    call util_aggregate( RC )
 
 !   Cleanup
+    do i=1,total_instances
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ ) ! deallocate the prod/loss arrays for each instance
+    enddo
+    deallocate(met%cosz, met%slr, met%o3col, met%photj, __STAT__ )
     VERIFY_(status)
 
     RETURN_(ESMF_SUCCESS)

@@ -9,10 +9,30 @@ module utils_mod
 
   contains
 
+    subroutine util_forwardeuler()
+      
+      ! In an instance-based situation, we have to deal with prod & loss differently
+      ! and surface or imported fluxes have to be categorized based on sign.
+      !
+      ! We assume all instances of a given species are well mixed, so that:
+      ! 1) A production term increments a specific instance.
+      ! 2) A loss term decrements the total of all instances
+      !    and the loss is proportional across all instances.
+      
+      ! Sort prod, loss, instances & instance associations
+
+      ! Integrate
+
+    end subroutine util_forwardeuler
+
+    subroutine util_addtendency()
+
+    end subroutine util_addtendency
+
     subroutine util_addinstance( instance, name, gas, mw, active, status )
 
       use global_mod, only : total_instances
-      use global_mod, only : instances
+      use global_mod, only : instances, aggregate
       use global_mod, only : species, nspecies
 
       ! This routine adds an instance to a blank or existing
@@ -35,7 +55,7 @@ module utils_mod
       ! local
       integer                        :: i,n
       type(gas_instance), pointer    :: tmp(:)
-      type(aggregate), pointer       :: atmp(:)
+      type(inst), pointer            :: atmp(:)
       integer, allocatable           :: tind(:)
       character(32), allocatable     :: tspc(:)
       logical                        :: found
@@ -85,8 +105,8 @@ module utils_mod
       if (nspecies .eq. 0) then ! no species yet
          nspecies = 1
          allocate(species(nspecies)) ! 1st species
-         species(1) = '' ! fill up the string with whitespace
-         write(species(1),*) gas
+         allocate(aggregate(nspecies))
+         species(1) = gas
          instance(n)%ispecies = nspecies
       else ! 
          found = .false.
@@ -106,9 +126,10 @@ module utils_mod
             allocate(species(nspecies))
             species(1:nspecies-1) = tspc
             deallocate(tspc)
-            species(nspecies) = '' ! fill up the string with whitespace
-            write(species(nspecies),*) gas
+            species(nspecies) = gas
             instance(n)%ispecies = nspecies
+            deallocate(aggregate)
+            allocate(aggregate(nspecies))
          endif
       endif
 
@@ -128,7 +149,7 @@ module utils_mod
          atmp(total_instances)%p => instance(n)
          
          ! --increment the global object
-         if (associated(instances)) deallocate(instances, stat=status)
+         if (allocated(instances)) deallocate(instances, stat=status)
          allocate(instances(total_instances), stat=status)
          
          do i=1,total_instances
@@ -146,7 +167,7 @@ module utils_mod
 
     subroutine util_addsurfaceflux( sfc_flux, pair, name, d, p, scalefactor, status)
 
-      use global_mod, only : tmp_flux, instances
+      use global_mod, only : instances
        
       type(surface_flux), pointer, intent(inout) :: sfc_flux(:)
       character(*),                intent(in)    :: pair
@@ -157,6 +178,8 @@ module utils_mod
 
       integer :: i, n
       logical :: found
+
+      type(surface_flux), pointer                :: tmp_flux(:) ! Used for building the flux list
 
       status = 0
 
@@ -230,6 +253,22 @@ module utils_mod
       return
 
     end subroutine util_addsurfaceflux
+
+    subroutine util_aggregate( RC )
+
+      use global_mod, only : instances, aggregate, total_instances, nspecies
+
+      integer, intent(out) :: RC
+      
+      integer :: i, n
+
+      do i=1,total_instances
+         do n=1,nspecies
+            if (instances(n)%p%ispecies .eq. n) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
+         enddo
+      enddo
+
+    end subroutine util_aggregate
 
     subroutine util_dumpinstances()
       use global_mod, only : total_instances

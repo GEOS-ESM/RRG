@@ -10,11 +10,11 @@ module global_mod
   public 
   save
 
-  type(aggregate),       pointer :: instances(:) => null()! A repository for all instances
+  type(inst),        allocatable :: instances(:)          ! A repository for all instances
+  type(aggr),        allocatable :: aggregate(:)          ! Totals of all instances of a given species. The index is species index
 
   type(meteorology)              :: met
   type(surface_flux),    pointer :: sfc_flux(:)
-  type(surface_flux),    pointer :: tmp_flux(:) ! Used for building the flux list
   type(parameters),      target  :: params
 
   integer                        :: total_instances = 0 ! over all gases. Initialized to zero

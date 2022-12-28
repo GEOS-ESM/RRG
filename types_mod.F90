@@ -4,15 +4,21 @@ module types_mod
   
   type gas_instance
      real, pointer, DIMENSION(:,:,:) :: data3d ! Abundance
+     real, allocatable               :: prod(:,:,:), loss(:,:,:)
      real                            :: mw ! Molecular weight
      logical                         :: active = .true.  ! Assume active by default
      character(len=255)              :: name, species
-     integer                         :: index, ispecies
+     integer                         :: index
+     integer                         :: ispecies
   end type gas_instance
 
-  type aggregate
+  type inst
      type(gas_instance), pointer     :: p
-  end type aggregate
+  end type inst
+
+  type aggr
+     real, pointer                   :: q(:,:,:)
+  end type aggr
 
   type meteorology ! met
      ! Imports
@@ -25,10 +31,16 @@ module types_mod
      real, pointer, dimension(:,:)   :: v10m  
      real, pointer, dimension(:,:,:) :: t     
      real, pointer, dimension(:,:,:) :: delp
+     real, pointer, dimension(:,:,:) :: ple
      real, pointer, dimension(:,:,:) :: zle   
+     real, pointer, dimension(:,:,:) :: rho    ! air density
      real, pointer, dimension(:,:,:) :: q     
      real, pointer, dimension(:,:,:) :: qctot 
      real, pointer, dimension(:,:,:) :: qtot   ! Calculated locally. Not currently an available import.
+
+     real, allocatable               :: cosz(:,:), slr(:,:) ! insolation params
+     real, allocatable               :: O3col(:,:,:)
+     real, allocatable               :: photJ(:,:,:)
   end type meteorology
 
   type surface_flux

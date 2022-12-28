@@ -19,7 +19,7 @@ contains
 
 ! !USES:
 
-    use global_mod, only : instances, grav
+    use global_mod, only : instances, grav, aggregate, total_instances
 
     IMPLICIT NONE
 
@@ -34,9 +34,10 @@ contains
 ! !LOCAL VARIABLES
     ! Below, this is done for cleanliness
 
-    integer :: i, j, k, kt, n, index
+    integer :: i, j, k, n, nst, index, spc
     integer :: status
     real, allocatable :: fPBL(:,:,:), fDNL(:,:)
+    real              :: fdC
 
     if (.not. associated(sfc_flux)) then ! no fluxes to compute.
        RC = 0
@@ -58,32 +59,68 @@ contains
 
 !   2) Loop through and compute fluxes
 
-    do i=1,size(sfc_flux) ! should be > 0
-       index = sfc_flux(i)%index
-       if (sfc_flux(i)%pblmix) then
-          if (sfc_flux(i)%diurnal) then
+    do n=1,size(sfc_flux) ! should be > 0
+       index = sfc_flux(n)%index
+       if (sfc_flux(n)%pblmix) then
+          ! ASSUMPTION: any flux that is mixed in the PBL will be positive 
+          if (sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
                 instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
-                                                   sfc_flux(i)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
+                                                   sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
                                                    params%cdt * grav / met%delp(:,:,k)
              end do
           else
              do k=minPBL,params%km
                 instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
-                                                   sfc_flux(i)%flux(:,:) * fPBL(:,:,k) * &
+                                                   sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
                                                    params%cdt * grav / met%delp(:,:,k)
              end do
           endif
-       else
+       else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
           k = params%km ! at the surface
-          if (sfc_flux(i)%diurnal) then
-             instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
-                                                sfc_flux(i)%flux(:,:) * fDNL(:,:) * &
-                                                params%cdt * grav / met%delp(:,:,k)
+          if (sfc_flux(n)%diurnal) then
+             do j=1,params%jm
+             do i=1,params%im
+                if (sfc_flux(n)%flux(i,j) .gt. 0) then ! Source 
+                   instances(index)%p%data3d(i,j,k) = instances(index)%p%data3d(i,j,k) +  &
+                                                      sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
+                                                      params%cdt * grav / met%delp(i,j,k)
+                   cycle
+                endif
+                ! Don't branch. Just re-ask 'if'
+                spc = instances(index)%p%ispecies ! Species index
+                if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
+                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * params%cdt * grav / met%delp(i,j,k)) / &
+                         aggregate(spc)%q(i,j,k)
+                   ! Loop over all instances
+                   do nst=1,size(instances)
+                      if (instances(nst)%p%ispecies .eq. spc) &
+                           instances(nst)%p%data3d(i,j,k) = instances(nst)%p%data3d(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                   enddo
+                endif
+             enddo
+             enddo
           else
-             instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
-                                                sfc_flux(i)%flux(:,:) * &
-                                                params%cdt * grav / met%delp(:,:,k)
+             do j=1,params%jm
+             do i=1,params%im
+                if (sfc_flux(n)%flux(i,j) .gt. 0) then ! Source
+                   instances(index)%p%data3d(i,j,k) = instances(index)%p%data3d(i,j,k) +  &
+                                                      sfc_flux(n)%flux(i,j) * &
+                                                      params%cdt * grav / met%delp(i,j,k)
+                   cycle
+                endif
+                ! Don't branch. Just re-ask 'if'
+                spc = instances(index)%p%ispecies ! Species index
+                if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
+                   fdC = (sfc_flux(n)%flux(i,j) * params%cdt * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   ! Loop over all instances
+                   do nst=1,total_instances
+                      if (instances(nst)%p%ispecies .eq. spc) &
+                           instances(nst)%p%data3d(i,j,k) = instances(nst)%p%data3d(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                   enddo
+                endif
+             enddo
+             enddo
           endif
        endif
        

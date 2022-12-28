@@ -17,7 +17,28 @@ Development notes:
 * TODO Run
 ** Surface
 ** Chemistry
-** Aggregation for *_total()
+*** HOLYCRAP CO PHOTOLYSIS
+    This is a mess
+** Integration
+   Source terms may deplete individual instance bins
+   But sink terms have to deplete the total (or all bins proportionally)
+
+   It makes simple sense:
+   
+   dC/dt = P - L
+
+   P is the linear production rate, and can be applied directly.
+   L is the linear loss rate, but it has to be scaled by C_total
+
+   L/C_total = k, so that
+
+   dC/dt = P - kC
+
+   ... EZPZ
+   
+   So what we need to do is simply set up the prod & loss terms
+   then we can do whatever we want.
+
 ** What else?
 * TODO Finalize
 * TODO Features

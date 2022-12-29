@@ -14,11 +14,15 @@ Development notes:
 **** Read in passives
      What if name in passive list isn't an instance? Error out. %%%
      
-* TODO Run
+* IN-PROGRESS Run
 ** Surface
+   Surface/external fluxes have to be handled carefully
+   - fluxes 'in' can be added to a specific instance
+   - fluxes 'out' have to be partitioned evenly over all instances
 ** Chemistry
 *** HOLYCRAP CO PHOTOLYSIS
     This is a mess
+   P & L can be computed for each instance individually (thanks Sourish!)
 ** Integration
    Source terms may deplete individual instance bins
    But sink terms have to deplete the total (or all bins proportionally)

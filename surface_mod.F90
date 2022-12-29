@@ -12,10 +12,8 @@ MODULE Surface_Mod
 
 contains
 
-!-------------------------------------------------------------------------
-  SUBROUTINE surface_integrateflux ( sfc_flux, met, params, rc )
-!-------------------------------------------------------------------------
-! Currently unused.
+!-------------------------------------------------------------------------------
+  SUBROUTINE surface_prodloss ( sfc_flux, met, params, rc )
 
 ! !USES:
 
@@ -24,9 +22,9 @@ contains
     IMPLICIT NONE
 
 ! !INPUT PARAMETERS:
-    type(surface_flux), pointer, intent(inout) :: sfc_flux(:)
-    type(meteorology),  target, intent(in)    :: met
-    type(parameters), target, intent(in)     :: params 
+    type(surface_flux), pointer, intent(in)        :: sfc_flux(:)
+    type(meteorology),  target, intent(in)         :: met
+    type(parameters), target, intent(in)           :: params 
 
 ! !OUTPUT PARAMETERS:
     integer, intent(out) :: rc ! Error return code
@@ -65,15 +63,15 @@ contains
           ! ASSUMPTION: any flux that is mixed in the PBL will be positive 
           if (sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
-                instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
+                instances(index)%p%prod(:,:,k)   = instances(index)%p%prod(:,:,k) + &
                                                    sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
-                                                   params%cdt * grav / met%delp(:,:,k)
+                                                   grav / met%delp(:,:,k)
              end do
           else
              do k=minPBL,params%km
-                instances(index)%p%data3d(:,:,k) = instances(index)%p%data3d(:,:,k)+ &
+                instances(index)%p%prod(:,:,k)   = instances(index)%p%prod(:,:,k) + &
                                                    sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
-                                                   params%cdt * grav / met%delp(:,:,k)
+                                                   grav / met%delp(:,:,k)
              end do
           endif
        else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
@@ -81,21 +79,22 @@ contains
           if (sfc_flux(n)%diurnal) then
              do j=1,params%jm
              do i=1,params%im
-                if (sfc_flux(n)%flux(i,j) .gt. 0) then ! Source 
-                   instances(index)%p%data3d(i,j,k) = instances(index)%p%data3d(i,j,k) +  &
+                ! Source term?
+                if (sfc_flux(n)%flux(i,j) .gt. 0) then
+                   instances(index)%p%prod(i,j,k)   = instances(index)%p%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
-                                                      params%cdt * grav / met%delp(i,j,k)
+                                                      grav / met%delp(i,j,k)
                    cycle
                 endif
+                ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = instances(index)%p%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * params%cdt * grav / met%delp(i,j,k)) / &
-                         aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,size(instances)
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%data3d(i,j,k) = instances(nst)%p%data3d(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
                    enddo
                 endif
              enddo
@@ -103,20 +102,22 @@ contains
           else
              do j=1,params%jm
              do i=1,params%im
-                if (sfc_flux(n)%flux(i,j) .gt. 0) then ! Source
-                   instances(index)%p%data3d(i,j,k) = instances(index)%p%data3d(i,j,k) +  &
+                ! Source term?
+                if (sfc_flux(n)%flux(i,j) .gt. 0) then
+                   instances(index)%p%prod(i,j,k)   = instances(index)%p%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * &
-                                                      params%cdt * grav / met%delp(i,j,k)
+                                                      grav / met%delp(i,j,k)
                    cycle
                 endif
+                ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = instances(index)%p%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * params%cdt * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,total_instances
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%data3d(i,j,k) = instances(nst)%p%data3d(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
                    enddo
                 endif
              enddo
@@ -133,7 +134,7 @@ contains
     rc = 0
     
     RETURN
-  END SUBROUTINE surface_integrateflux
+  END SUBROUTINE surface_prodloss
 
 !BOP
 !

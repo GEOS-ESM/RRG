@@ -436,27 +436,27 @@ contains
    call RegisterFluxWithMAPL( GC, cfg, 'CH4', RC )
 
 !  Add gas imports for CH4 & CO chemistry
-!<<>>   call MAPL_AddImportSpec(GC,           &
-!<<>>      SHORT_NAME = 'CH4_oh',             &
-!<<>>      LONG_NAME  = 'source species'  ,   &
-!<<>>      UNITS      = 'molecules cm-3',     &
-!<<>>      DIMS       = MAPL_DimsHorzVert,    &
-!<<>>      VLOCATION  = MAPL_VLocationCenter, &
-!<<>>      __RC__)
-!<<>>   call MAPL_AddImportSpec(GC,           &
-!<<>>      SHORT_NAME = 'CH4_cl',             &
-!<<>>      LONG_NAME  = 'source species',     &
-!<<>>      UNITS      = 'molecules cm-3',     &
-!<<>>      DIMS       = MAPL_DimsHorzVert,    &
-!<<>>      VLOCATION  = MAPL_VLocationCenter, &
-!<<>>      __RC__)
-!<<>>   call MAPL_AddImportSpec(GC,           &
-!<<>>      SHORT_NAME = 'CH4_o1d',            &
-!<<>>      LONG_NAME  = 'source species',     &
-!<<>>      UNITS      = 'molecules cm-3',     &
-!<<>>      DIMS       = MAPL_DimsHorzVert,    &
-!<<>>      VLOCATION  = MAPL_VLocationCenter, &
-!<<>>      __RC__)
+   call MAPL_AddImportSpec(GC,           &
+      SHORT_NAME = 'OH',                 &
+      LONG_NAME  = 'hydroxyl',           &
+      UNITS      = 'molecules cm-3',     &
+      DIMS       = MAPL_DimsHorzVert,    &
+      VLOCATION  = MAPL_VLocationCenter, &
+      __RC__)
+   call MAPL_AddImportSpec(GC,           &
+      SHORT_NAME = 'Cl',                 &
+      LONG_NAME  = 'atomic Cl',          &
+      UNITS      = 'molecules cm-3',     &
+      DIMS       = MAPL_DimsHorzVert,    &
+      VLOCATION  = MAPL_VLocationCenter, &
+      __RC__)
+   call MAPL_AddImportSpec(GC,           &
+      SHORT_NAME = 'O1D',                &
+      LONG_NAME  = 'singlet O',          &
+      UNITS      = 'molecules cm-3',     &
+      DIMS       = MAPL_DimsHorzVert,    &
+      VLOCATION  = MAPL_VLocationCenter, &
+      __RC__)
 
 !  Set entry points
 !  ------------------------
@@ -624,6 +624,9 @@ contains
     use surface_mod
     use global_mod
 
+    ! Species chemistry modules
+    use CO_mod
+
 !   !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
     type (ESMF_State),    intent(inout) :: import ! Import state
@@ -631,7 +634,8 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION:  Computes surface fluxes
+! !DESCRIPTION: dC/dt = P - L
+!               P & L are computed for all species and integrated simultaneously
 
 !EOP
 !============================================================================
@@ -651,7 +655,7 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical :: first = .true.
 
-    real, pointer, dimension(:,:,:) :: O3
+    real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D 
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
     real(ESMF_KIND_R4), allocatable :: SLR(:,:)
     type (MAPL_SunOrbit)            :: ORBIT
@@ -692,10 +696,7 @@ contains
 !   Associate the met fields
 !   -----------------------------------
     call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__) ! pblh
-    ! pco2 <currently unused>
     call MAPL_GetPointer(import,met%ps,   'PS',   __RC__) ! ps
-    ! sss <currently unused>
-    ! sst <currently unused>
     call MAPL_GetPointer(import,met%u10m, 'U10M', __RC__) ! u10
     call MAPL_GetPointer(import,met%v10m, 'V10M', __RC__) ! v10
     call MAPL_GetPointer(import,met%T,    'T',    __RC__) ! T
@@ -705,6 +706,9 @@ contains
     call MAPL_GetPointer(import,met%qctot,'QCTOT',__RC__) ! qtot
     call MAPL_GetPointer(import,met%rho,'AIRDENS',__RC__) ! rho
     CALL MAPL_GetPointer(import,     O3,    'O3', __RC__)
+    CALL MAPL_GetPointer(import,     OH,    'OH', __RC__)
+    CALL MAPL_GetPointer(import,     Cl,    'Cl', __RC__)
+    CALL MAPL_GetPointer(import,    O1D,   'O1D', __RC__)
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
@@ -726,6 +730,7 @@ contains
    END DO
    
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
+   met%photj = 0.e0
    do k=1,params%km
    do j=1,params%jm
    do i=1,params%im
@@ -738,6 +743,7 @@ contains
     do i=1,total_instances
        call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
        allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
+       instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
     enddo
 
 !   Get pointers to the aggregates/totals
@@ -753,18 +759,26 @@ contains
 !   Aggregate instances into the totals prior to operations
     call util_aggregate( RC )
 
-    if (associated(sfc_flux)) then ! are there even any fluxes to compute?
-!   Surface fluxes
-!   -- fill the pointers. This is ESMF/MAPL specific, so it's a local routine
-       call fillFluxfromESMF( import, sfc_flux, __RC__ )
-    endif
+!   Fill pointers for surface fluxes
+    if (associated(sfc_flux)) call fillFluxfromESMF( import, sfc_flux, __RC__ )
+
+!   Compute prod/loss & integrate
+!   -- each species' chemistry
+!   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
+    call CO_prodloss( sfc_flux, params, met, OH, O1D, Cl, CH4_total, CO2_total, RC )
+
+!   -- surface fluxes for all instances
+    call Surface_prodloss( sfc_flux, met, params, RC )
+
+!   -- integration
+!   call integrate_forwardeuler()
 
 !   Aggregate instances into the totals after operations
     call util_aggregate( RC )
 
 !   Cleanup
     do i=1,total_instances
-       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ ) ! deallocate the prod/loss arrays for each instance
+       nullify( instances(i)%p%prod, instances(i)%p%loss ) ! deallocate the prod/loss arrays for each instance
     enddo
     deallocate(met%cosz, met%slr, met%o3col, met%photj, __STAT__ )
     VERIFY_(status)
@@ -872,7 +886,7 @@ contains
          units      ='kg kg-1', &
          dims       =MAPL_DimsHorzVert, &
          vlocation  =MAPL_VlocationCenter, &
-         restart    =MAPL_RestartOptional, &
+!         restart    =MAPL_RestartOptional, &
          friendlyto ='DYNAMICS:TURBULENCE:MOIST', &
          add2export =.true., & !<-- is this what makes it available for HISTORY?
          __RC__)

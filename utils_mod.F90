@@ -31,7 +31,7 @@ module utils_mod
 
     subroutine util_addinstance( instance, name, gas, mw, active, status )
 
-      use global_mod, only : total_instances
+      use global_mod, only : NINSTANCES
       use global_mod, only : instances, aggregate
       use global_mod, only : species, nspecies
 
@@ -81,7 +81,7 @@ module utils_mod
 
       ! reallocate the global instance and increment
       n = n+1
-      total_instances = total_instances+1
+      NINSTANCES = NINSTANCES+1
       allocate(instance(n), stat=status)
 
       ! repopulate the incremented instance with the old data
@@ -91,7 +91,7 @@ module utils_mod
       instance(n)%name    = trim(name)
       instance(n)%species = trim(gas)
       instance(n)%active  = active
-      instance(n)%index   = total_instances
+      instance(n)%index   = NINSTANCES
       instance(n)%mw      = mw
 
       ! Restore any broken associations with the total instance object
@@ -138,21 +138,21 @@ module utils_mod
 
       ! now increment the total instances object
       ! -- set up the temporary object to store data
-      if (total_instances .eq. 1) then
-         allocate(instances(total_instances), stat=status)
-         instances(total_instances)%p => instance(n)
+      if (NINSTANCES .eq. 1) then
+         allocate(instances(NINSTANCES), stat=status)
+         instances(NINSTANCES)%p => instance(n)
       else   
-         allocate(atmp(total_instances), stat=status)
-         do i=1,total_instances-1
+         allocate(atmp(NINSTANCES), stat=status)
+         do i=1,NINSTANCES-1
             atmp(i) = instances(i)
          enddo
-         atmp(total_instances)%p => instance(n)
+         atmp(NINSTANCES)%p => instance(n)
          
          ! --increment the global object
          if (allocated(instances)) deallocate(instances, stat=status)
-         allocate(instances(total_instances), stat=status)
+         allocate(instances(NINSTANCES), stat=status)
          
-         do i=1,total_instances
+         do i=1,NINSTANCES
             instances(i) = atmp(i)
 !            if (MAPL_am_I_root()) write(*,*) '<<>> XY', i, trim(atmp(i)%p%name)
          enddo
@@ -256,13 +256,13 @@ module utils_mod
 
     subroutine util_aggregate( RC )
 
-      use global_mod, only : instances, aggregate, total_instances, nspecies
+      use global_mod, only : instances, aggregate, NINSTANCES, nspecies
 
       integer, intent(out) :: RC
       
       integer :: i, n
 
-      do i=1,total_instances
+      do i=1,NINSTANCES
          do n=1,nspecies
             if (instances(n)%p%ispecies .eq. n) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
          enddo
@@ -271,17 +271,17 @@ module utils_mod
     end subroutine util_aggregate
 
     subroutine util_dumpinstances()
-      use global_mod, only : total_instances
+      use global_mod, only : NINSTANCES
       use global_mod, only : in => instances
 
       logical :: yesno
       integer :: i, n
       character(20) :: active
 
-      ! 1) Check that the total_instances equals the total number of 
+      ! 1) Check that the NINSTANCES equals the total number of 
       !    instances in object
       n = size(in)
-      if (total_instances .eq. n) then
+      if (NINSTANCES .eq. n) then
          yesno = .true.
       else
          yesno = .false.
@@ -289,9 +289,9 @@ module utils_mod
 
       ! First, dump info about the total instances
       !write(*,*) 'Does the index of total instances match the number of instances?'
-      !if (yesno) write(*,*) 'It does! ', total_instances
+      !if (yesno) write(*,*) 'It does! ', NINSTANCES
       !if (.not. yesno) write(*,*) 'It does not! Something is wrong: ', &
-      !     total_instances, ' .ne. ', n
+      !     NINSTANCES, ' .ne. ', n
 
       ! Dump instance info
       write(*,'(a)') ' name | gas | active? | index'

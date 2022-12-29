@@ -623,6 +623,7 @@ contains
 !   !USES:
     use surface_mod
     use global_mod
+    use integration_mod
 
     ! Species chemistry modules
     use CO_mod
@@ -701,7 +702,7 @@ contains
     call MAPL_GetPointer(import,met%v10m, 'V10M', __RC__) ! v10
     call MAPL_GetPointer(import,met%T,    'T',    __RC__) ! T
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
-    call MAPL_GetPointer(import,met%zle,  'PLE',  __RC__) ! ple
+    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
     call MAPL_GetPointer(import,met%qctot,'QCTOT',__RC__) ! qtot
     call MAPL_GetPointer(import,met%rho,'AIRDENS',__RC__) ! rho
@@ -740,7 +741,7 @@ contains
    enddo
 
 ! Get the instance data pointers
-    do i=1,total_instances
+    do i=1,NINSTANCES
        call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
        allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
        instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
@@ -771,13 +772,13 @@ contains
     call Surface_prodloss( sfc_flux, met, params, RC )
 
 !   -- integration
-!   call integrate_forwardeuler()
+   call integrate_forwardeuler( params, RC )
 
 !   Aggregate instances into the totals after operations
     call util_aggregate( RC )
 
 !   Cleanup
-    do i=1,total_instances
+    do i=1,NINSTANCES
        nullify( instances(i)%p%prod, instances(i)%p%loss ) ! deallocate the prod/loss arrays for each instance
     enddo
     deallocate(met%cosz, met%slr, met%o3col, met%photj, __STAT__ )

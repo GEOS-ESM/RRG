@@ -35,7 +35,7 @@ CONTAINS
 
     !   !USES:
     use types_mod
-    use global_mod, only : instances, total_instances
+    use global_mod, only : instances, NINSTANCES
 
     IMPLICIT NONE
 
@@ -96,16 +96,18 @@ CONTAINS
 
     ! currently unused, since oxidants import as mcl/cm3 ... allocate(cvfac(im,jm,km),k_(im,jm,km), stat=RC)
     ! currently unused, since oxidants import as mcl/cm3 ... cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
-    write(
-    do nst = 1,size(instances) ! cycle over instances
-       prod  => instances(nst)%p%prod ! in kg/kg/s
-       loss  => instances(nst)%p%loss ! in kg/kg/s
-       CO    => instances(nst)%p%data3d ! CO pointer makes the code cleaner
+    allocate(k_(im,jm,km), stat=RC)
+    do nst = 1,NINSTANCES ! cycle over instances
+       prod  => instances(nst)%p%prod(:,:,:) ! in kg/kg/s
+       loss  => instances(nst)%p%loss(:,:,:) ! in kg/kg/s
+       CO    => instances(nst)%p%data3d(:,:,:) ! CO pointer makes the code cleaner
        
        !            CO + OH -> ...
        !  --------------
        ! the following uses the midpoint level pressure derived from PLE
-       k_ = 1.50E-13*(1.00+0.60E-05*(met%ple+met%ple(i,j,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
+       do k=1,km
+          k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
+       enddo
        loss = loss + k_*CO*OH
        
        !  Production due to CH4 oxidation
@@ -129,9 +131,9 @@ CONTAINS
        !prod = prod + met%photJ*CH4 <-- what to do about this? <<>>
        prod = prod + met%photJ*CO2
        
-!       CO   => null()
-!       prod => null()
-!       loss => null()
+       CO   => null()
+       prod => null()
+       loss => null()
     enddo
 
     ! Surface and imported fluxes are computed externally
@@ -168,7 +170,7 @@ CONTAINS
     !  Housekeeping
     !  ------------
     ! currently unused, since oxidants import as mcl/cm3 ... deallocate(cvfac, stat=RC)
-
+    deallocate(k_, stat=RC)
     RETURN
 
 !  CONTAINS

@@ -17,7 +17,7 @@ contains
 
 ! !USES:
 
-    use global_mod, only : instances, grav, aggregate, total_instances
+    use global_mod, only : instances, grav, aggregate, NINSTANCES
 
     IMPLICIT NONE
 
@@ -94,7 +94,7 @@ contains
                    ! Loop over all instances
                    do nst=1,size(instances)
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
                    enddo
                 endif
              enddo
@@ -115,9 +115,9 @@ contains
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
                    fdC = (sfc_flux(n)%flux(i,j) * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
-                   do nst=1,total_instances
+                   do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)+fdC*instances(nst)%p%data3d(i,j,k)
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                    enddo
                 endif
              enddo

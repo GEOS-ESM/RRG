@@ -17,7 +17,7 @@ module global_mod
   type(surface_flux),    pointer :: sfc_flux(:)
   type(parameters),      target  :: params
 
-  integer                        :: total_instances = 0 ! over all gases. Initialized to zero
+  integer                        :: NINSTANCES = 0 ! over all gases. Initialized to zero
 
   real                           :: grav = 9.80665 ! This can be set at runtime if a different value is desired
 

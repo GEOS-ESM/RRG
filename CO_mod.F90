@@ -31,7 +31,7 @@ CONTAINS
   ! !INTERFACE:
   !
 
-  SUBROUTINE CO_prodloss( sfc_flux, params, met, OH, O1D, Cl, CH4, CO2, RC )
+  SUBROUTINE CO_prodloss( COinst, sfc_flux, params, met, OH, O1D, Cl, CH4, CO2, RC )
 
     !   !USES:
     use types_mod
@@ -40,9 +40,10 @@ CONTAINS
     IMPLICIT NONE
 
     !   !INPUT PARAMETERS:
-    type(parameters), intent(in)   :: params
-    type(meteorology), intent(in)  :: met
-    type(surface_flux), intent(in) :: sfc_flux(:)
+    type(gas_instance), intent(inout) :: COinst(:)
+    type(parameters), intent(in)      :: params
+    type(meteorology), intent(in)     :: met
+    type(surface_flux), intent(in)    :: sfc_flux(:)
 
     ! Reactants
     real, pointer, intent(in)     ::  OH(:,:,:)
@@ -97,10 +98,10 @@ CONTAINS
     ! currently unused, since oxidants import as mcl/cm3 ... allocate(cvfac(im,jm,km),k_(im,jm,km), stat=RC)
     ! currently unused, since oxidants import as mcl/cm3 ... cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
     allocate(k_(im,jm,km), stat=RC)
-    do nst = 1,NINSTANCES ! cycle over instances
-       prod  => instances(nst)%p%prod(:,:,:) ! in kg/kg/s
-       loss  => instances(nst)%p%loss(:,:,:) ! in kg/kg/s
-       CO    => instances(nst)%p%data3d(:,:,:) ! CO pointer makes the code cleaner
+    do nst = 1,size(COinst) ! cycle over instances
+       prod  => COinst(nst)%prod(:,:,:) ! in kg/kg/s
+       loss  => COinst(nst)%loss(:,:,:) ! in kg/kg/s
+       CO    => COinst(nst)%data3d(:,:,:) ! CO pointer makes the code cleaner
        
        !            CO + OH -> ...
        !  --------------

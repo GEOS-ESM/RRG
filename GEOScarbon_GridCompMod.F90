@@ -766,7 +766,7 @@ contains
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
-    call CO_prodloss( sfc_flux, params, met, OH, O1D, Cl, CH4_total, CO2_total, RC )
+    call CO_prodloss( CO, sfc_flux, params, met, OH, O1D, Cl, CH4_total, CO2_total, RC )
 
 !   -- surface fluxes for all instances
     call Surface_prodloss( sfc_flux, met, params, RC )

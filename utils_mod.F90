@@ -262,9 +262,10 @@ module utils_mod
       
       integer :: i, n
 
-      do i=1,NINSTANCES
-         do n=1,nspecies
-            if (instances(n)%p%ispecies .eq. n) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
+      do n=1,nspecies
+         aggregate(n)%q = 0.e0
+         do i=1,NINSTANCES
+            if (instances(i)%p%ispecies .eq. n) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
          enddo
       enddo
 

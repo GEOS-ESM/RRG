@@ -772,7 +772,7 @@ contains
     call Surface_prodloss( sfc_flux, met, params, RC )
 
 !   -- integration
-   call integrate_forwardeuler( params, RC )
+    call integrate_forwardeuler( params, RC )
 
 !   Aggregate instances into the totals after operations
     call util_aggregate( RC )

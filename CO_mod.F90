@@ -128,7 +128,7 @@ CONTAINS
        !            CO2 + hv -> CO + ???
        !     1st order (1/s); don't need CVFAC
        !  ----------------------------------------------------------------------------
-       !prod = prod + met%photJ*CH4 <-- what to do about this? <<>>
+       !prod = prod + met%photJ*CH4 <-- what to do about this? I don't think it's real <<>> MSL
        prod = prod + met%photJ*CO2
        
        CO   => null()

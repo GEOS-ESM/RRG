@@ -22,6 +22,7 @@ module integration_mod
       do i=1,NINSTANCES
          instances(i)%p%data3d = instances(i)%p%data3d + &
                                  (instances(i)%p%prod - instances(i)%p%loss) * params%cdt
+!         write(*,*) '<<>> inst: ', trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), maxval(instances(i)%p%data3d(:,:,:)), maxval(instances(i)%p%prod), maxval(instances(i)%p%loss)
       enddo
 
       RETURN

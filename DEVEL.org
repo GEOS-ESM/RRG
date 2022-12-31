@@ -1,11 +1,15 @@
 #+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
 Development notes:
+* TODO:
+  Masks
+  Passives
+  Mass balance
 * Open Questions:
 ** How to control if a species itself is active?
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
 ** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
 * TODO Error control     
-* IN-PROGRESS Initialization
+* BETA Initialization
 ** Interface
    Keep everything runtime controlled. As much as possible.
 *** Config
@@ -15,15 +19,19 @@ Development notes:
      What if name in passive list isn't an instance? Error out. %%%
      
 * IN-PROGRESS Run
-** Surface
+** IN-PROGRESS Surface
    Surface/external fluxes have to be handled carefully
    - fluxes 'in' can be added to a specific instance
    - fluxes 'out' have to be partitioned evenly over all instances
-** Chemistry
-*** HOLYCRAP CO PHOTOLYSIS
-    This is a mess
-   P & L can be computed for each instance individually (thanks Sourish!)
-** Integration
+   MASKS!
+** IN-PROGRESS Chemistry
+   Chem prod goes into residual
+   Chem loss depletes all instances
+*** BETA CO
+*** BETA CH4
+*** BETA CO2
+** DONE Integration
+   CLOSED: [2022-12-29 Thu 22:50]
    Source terms may deplete individual instance bins
    But sink terms have to deplete the total (or all bins proportionally)
 
@@ -43,9 +51,14 @@ Development notes:
    So what we need to do is simply set up the prod & loss terms
    then we can do whatever we want.
 
+*** DONE Forward Euler
+    CLOSED: [2022-12-29 Thu 22:51]
+
 ** What else?
+* TODO Diagnostics
 * TODO Finalize
 * TODO Features
 ** coupling to other components
 ** using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
    currently relies on strings. String searches are wet blankets
+** MASKS!

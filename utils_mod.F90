@@ -9,25 +9,24 @@ module utils_mod
 
   contains
 
-    subroutine util_forwardeuler()
+    subroutine util_accumulatenegatives( status )
+      use global_mod, only: NINSTANCES, instances
+      integer,      intent(out)      :: status
+
+      integer i
+      status = 0
       
-      ! In an instance-based situation, we have to deal with prod & loss differently
-      ! and surface or imported fluxes have to be categorized based on sign.
-      !
-      ! We assume all instances of a given species are well mixed, so that:
-      ! 1) A production term increments a specific instance.
-      ! 2) A loss term decrements the total of all instances
-      !    and the loss is proportional across all instances.
-      
-      ! Sort prod, loss, instances & instance associations
+      do i=1,NINSTANCES
+         where(instances(i)%p%data3d .lt. 0.e0)
+            ! Add the negative to the mass tracker
+            ! TBD
+            ! Set negative to zero
+            instances(i)%p%data3d(:,:,:) = 0.d0
+         end where
+      end do
 
-      ! Integrate
-
-    end subroutine util_forwardeuler
-
-    subroutine util_addtendency()
-
-    end subroutine util_addtendency
+      return
+    end subroutine util_accumulatenegatives
 
     subroutine util_addinstance( instance, name, gas, mw, active, status )
 
@@ -35,16 +34,15 @@ module utils_mod
       use global_mod, only : instances, aggregate
       use global_mod, only : species, nspecies
 
-      ! This routine adds an instance to a blank or existing
-      ! gas_instance object
-      ! It does so by storing the data in a temporary object
-      ! incrementing the instance, and repopulating with the 
-      ! stored data and the new data passed in as arguments.
-      ! 
+      ! This routine 
+      ! 1) adds an instance to a blank or existing
+      !    gas_instance object.
+      ! 2) increments and manages the total instances object 'instances'
+      ! 3) increments and manages the chemical species objects
+      !    associated with instances
+      !
       ! HISTORY:
       ! Dec. 9, 2022: M. Long - first pass. 
-      !               Look, I know this is overkill, but it 
-      !               is extensible.
 
       ! arguments
       character(*), intent(in)       :: name, gas
@@ -60,10 +58,9 @@ module utils_mod
       character(32), allocatable     :: tspc(:)
       logical                        :: found
 
-      ! store the current instance data locally
-
       n = 0
 
+      ! store the current instance data locally
       if (associated(instance)) then
          n = size(instance)
          allocate(tmp(n), stat=status)
@@ -76,10 +73,10 @@ module utils_mod
          tind = instance(:)%index
       endif
 
-      ! free the global instance
+      ! free the instance object
       if (associated(instance)) deallocate(instance, stat=status)
 
-      ! reallocate the global instance and increment
+      ! reallocate the instance and increment
       n = n+1
       NINSTANCES = NINSTANCES+1
       allocate(instance(n), stat=status)
@@ -133,7 +130,7 @@ module utils_mod
          endif
       endif
 
-      ! cleanup: eliminate the local instance
+      ! cleanup: eliminate the temporary instance
       deallocate(tmp, tind, stat=status)
 
       ! now increment the total instances object
@@ -152,9 +149,9 @@ module utils_mod
          if (allocated(instances)) deallocate(instances, stat=status)
          allocate(instances(NINSTANCES), stat=status)
          
+         ! Pass the saved data back
          do i=1,NINSTANCES
             instances(i) = atmp(i)
-!            if (MAPL_am_I_root()) write(*,*) '<<>> XY', i, trim(atmp(i)%p%name)
          enddo
          
          ! -- cleanup
@@ -165,11 +162,10 @@ module utils_mod
 
     end subroutine util_addinstance
 
-    subroutine util_addsurfaceflux( sfc_flux, pair, name, d, p, scalefactor, status)
+    subroutine util_addsurfaceflux( pair, name, d, p, scalefactor, status)
 
-      use global_mod, only : instances
+      use global_mod
        
-      type(surface_flux), pointer, intent(inout) :: sfc_flux(:)
       character(*),                intent(in)    :: pair
       character(*),                intent(in)    :: name
       logical,                     intent(in)    :: d, p
@@ -262,6 +258,8 @@ module utils_mod
       
       integer :: i, n
 
+      RC = 0
+
       do n=1,nspecies
          aggregate(n)%q = 0.e0
          do i=1,NINSTANCES
@@ -303,13 +301,6 @@ module utils_mod
       enddo
 
     end subroutine util_dumpinstances
-
-    integer function instance_index( name )
-      character(*) name
-
-      instance_index = -1 ! Assume not found
-
-    end function instance_index
 
     function is_numeric(string)
       implicit none

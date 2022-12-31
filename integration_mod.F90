@@ -5,14 +5,13 @@ module integration_mod
 
   contains
 
-    subroutine integrate_forwardeuler( params, RC )
+    subroutine integrate_forwardeuler( RC )
 
-      use global_mod, only : instances, NINSTANCES
+      use global_mod
       use types_mod
 
       implicit none
       
-      type(parameters), intent(in)  :: params
       integer,          intent(out) :: RC
 
       integer :: i

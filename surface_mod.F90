@@ -13,18 +13,15 @@ MODULE Surface_Mod
 contains
 
 !-------------------------------------------------------------------------------
-  SUBROUTINE surface_prodloss ( sfc_flux, met, params, rc )
+  SUBROUTINE surface_prodloss ( rc )
 
 ! !USES:
 
-    use global_mod, only : instances, grav, aggregate, NINSTANCES
+    use global_mod
 
     IMPLICIT NONE
 
 ! !INPUT PARAMETERS:
-    type(surface_flux), pointer, intent(in)        :: sfc_flux(:)
-    type(meteorology),  target, intent(in)         :: met
-    type(parameters), target, intent(in)           :: params 
 
 ! !OUTPUT PARAMETERS:
     integer, intent(out) :: rc ! Error return code
@@ -52,11 +49,10 @@ contains
        ! Ideally, this is only done once. BUT alas.
        ! Can't keep fDNL allocated locally like that (can we? Should we?)
        allocate(fDNL(params%im,params%jm), stat=status)
-       call Surface_DiurnalScaling ( fDNL, params )
+       call surface_DiurnalScaling ( fDNL, params )
     endif
 
 !   2) Loop through and compute fluxes
-
     do n=1,size(sfc_flux) ! should be > 0
        index = sfc_flux(n)%index
        if (sfc_flux(n)%pblmix) then
@@ -65,13 +61,13 @@ contains
              do k=minPBL,params%km
                 instances(index)%p%prod(:,:,k)   = instances(index)%p%prod(:,:,k) + &
                                                    sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
-                                                   grav / met%delp(:,:,k)
+                                                   sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
              end do
           else
              do k=minPBL,params%km
                 instances(index)%p%prod(:,:,k)   = instances(index)%p%prod(:,:,k) + &
                                                    sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
-                                                   grav / met%delp(:,:,k)
+                                                   sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
              end do
           endif
        else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
@@ -83,14 +79,14 @@ contains
                 if (sfc_flux(n)%flux(i,j) .gt. 0) then
                    instances(index)%p%prod(i,j,k)   = instances(index)%p%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
-                                                      grav / met%delp(i,j,k)
+                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = instances(index)%p%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,size(instances)
                       if (instances(nst)%p%ispecies .eq. spc) &
@@ -106,14 +102,14 @@ contains
                 if (sfc_flux(n)%flux(i,j) .gt. 0) then
                    instances(index)%p%prod(i,j,k)   = instances(index)%p%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * &
-                                                      grav / met%delp(i,j,k)
+                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = instances(index)%p%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
@@ -141,7 +137,7 @@ contains
 ! !ROUTINE:  Chem_BiomassDiurnal - Applies diurnal cycle to biomass emissions.
 !
 ! !INTERFACE:
-  subroutine Surface_DiurnalScaling ( Fout, params )
+  subroutine surface_DiurnalScaling ( Fout, params )
 
 ! !USES:
 
@@ -347,7 +343,7 @@ contains
      end do
   end do
 
-end subroutine Surface_DiurnalScaling
+end subroutine surface_DiurnalScaling
 !==================================================================================
 
 subroutine surface_pblmix( fPBL, met, params,  RC )

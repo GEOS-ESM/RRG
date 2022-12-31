@@ -87,6 +87,139 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
+!==============================================================
+!           S E T  T H E  I M P O R T  S T A T E
+
+! 3-D
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'T',                                   &
+       LONG_NAME  = 'air_temperature',                     &
+       UNITS      = 'K',                                   &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+        SHORT_NAME = 'U10M',                               &
+        LONG_NAME  = '10-meter_eastward_wind',             &
+        UNITS      = 'm s-1',                              &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+    
+    call MAPL_AddImportSpec(GC,                            &
+        SHORT_NAME = 'V10M',                               &
+        LONG_NAME  = '10-meter_northward_wind',            &
+        UNITS      = 'm s-1',                              &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'Q',                                   &
+       LONG_NAME  = 'specific_humidity',                   &
+       UNITS      = 'kg kg-1',                             &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)  
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'QCTOT',                               &
+       LONG_NAME  = 'mass_fraction_of_total_cloud_water',  &
+       UNITS      = 'kg kg-1',                             &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter, __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'ZLE',                                 &
+       LONG_NAME  = 'geopotential_height',                 &
+       UNITS      = 'm',                                   &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationEdge,                    &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'DELP',                                &
+       LONG_NAME  = 'pressure_thickness',                  &
+       UNITS      = 'Pa',                                  &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'PLE',                                 &
+       LONG_NAME  = 'pressure_at_edges',                   &
+       UNITS      = 'Pa',                                  &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationEdge,                    &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'AIRDENS',                             &
+       LONG_NAME  = 'air_density',                         &
+       UNITS      = 'kg m-3',                              &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'O3',                                  &
+       LONG_NAME  = 'ozone',                               &
+       UNITS      = 'kg kg-1',                             &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    !  Add gas imports for CH4 & CO chemistry
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'OH',                                  &
+       LONG_NAME  = 'hydroxyl',                            &
+       UNITS      = 'molecules cm-3',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'Cl',                                  &
+       LONG_NAME  = 'atomic Cl',                           &
+       UNITS      = 'molecules cm-3',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'O1D',                                 &
+       LONG_NAME  = 'singlet O',                           &
+       UNITS      = 'molecules cm-3',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+! 2-D
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'ZPBL',                               &
+        LONG_NAME  = 'Planetary boundary layer height',    &
+        UNITS      = 'm',                                  &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,    __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'PS',                                 &
+        LONG_NAME  = 'surface_pressure',                   &
+        UNITS      = 'Pa',                                 &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+
+! ===============================================================
+!      S E T  U P  T H E  E X P O R T  S T A T E
+     ! Currently nothing
+! ===============================================================
+
+! ===============================================================
+!  R E A D  C O N F I G  A N D  S E T U P  I N S T A N C E S
+!
 !   Load resource file 
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
@@ -96,137 +229,18 @@ contains
       VERIFY_(STATUS)
     end if
 
-!==============================================================
-! Set up the import state
+!   Read & set cntrl object
+!   -----------------------
+    call ESMF_ConfigFindLabel(cfg,label='strictMassBalance:',isPresent=present,rc=status)
+    VERIFY_(STATUS) 
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
+       VERIFY_(STATUS) 
+    endif
 
-! 3-D
-
-!   T
-!   -
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'T',                                   &
-       LONG_NAME  = 'air_temperature',                     &
-       UNITS      = 'K',                                   &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-!    U10M
-!    ----
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'U10M',                               &
-        LONG_NAME  = '10-meter_eastward_wind',             &
-        UNITS      = 'm s-1',                              &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-
-!    V10M
-!    ----
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'V10M',                               &
-        LONG_NAME  = '10-meter_northward_wind',            &
-        UNITS      = 'm s-1',                              &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-
-!   Q
-!   -
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'Q',                                   &
-       LONG_NAME  = 'specific_humidity',                   &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
-
-!   QCTOT
-!   -------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'QCTOT',                               &
-       LONG_NAME  = 'mass_fraction_of_total_cloud_water',  &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter, __RC__)
-
-!   Height at the edges
-!   -------------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'ZLE',                                 &
-       LONG_NAME  = 'geopotential_height',                 &
-       UNITS      = 'm',                                   &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-! 2-D
-
-!    PBL 
-!    ---
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'ZPBL',                               &
-        LONG_NAME  = 'Planetary boundary layer height',    &
-        UNITS      = 'm',                                  &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,    __RC__)
-
-!    PS: from where???
-!    -----------------
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'PS',                                 &
-        LONG_NAME  = 'surface_pressure',                   &
-        UNITS      = 'Pa',                                 &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-
-!   Pressure thickness
-!   ------------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'DELP',                                &
-       LONG_NAME  = 'pressure_thickness',                  &
-       UNITS      = 'Pa',                                  &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-!   Pressure at level edges
-!   ------------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'PLE',                                 &
-       LONG_NAME  = 'pressure_at_edges',                   &
-       UNITS      = 'Pa',                                  &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-!   Pressure thickness
-!   ------------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'AIRDENS',                             &
-       LONG_NAME  = 'air_density',                         &
-       UNITS      = 'kg m-3',                              &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-!   O3 (mmr)
-!   ------------------
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'O3',                                  &
-       LONG_NAME  = 'ozone',                               &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       __RC__)
-
-!==============================================================
-!  Read in config, etc
-!  -- since this is all repeated for CO, CO2 & CH4, it could
-!     be built into a routine or two. Depends on how clean we wan
-!     it.
+!    Since this is all repeated for CO, CO2 & CH4, it could
+!  be built into a routine or two. Depends on how clean we want
+!  things
 
 !  Carbon monoxide (CO)
 !  CO: Parse resource file
@@ -261,8 +275,16 @@ contains
       ! Add new active instance (assume active)
       call Util_AddInstance( CO, trim(name), 'CO', 28.0104, .true., status)
       VERIFY_(STATUS)
-
    end do
+
+! If there are CO instances, then define an active residual by default
+! ASSUMPTION: a species' residual is always the last instance 
+   if (nCO .gt. 0) then
+      call Util_AddInstance( CO, 'residual', 'CO', 28.0104, .true., status)
+      VERIFY_(STATUS)
+      call RegisterInstanceWithMAPL( GC, 'CO', 'residual', rc=status )
+      VERIFY_(STATUS)
+   endif
 
 !  CO: Get passive instances and toggle them
    n = 0
@@ -330,6 +352,14 @@ contains
       call Util_AddInstance( CO2, trim(name), 'CO2', 44.0, .true., status)
       VERIFY_(STATUS)
    end do
+! If there are CO2 instances, then define an active residual by default   
+! ASSUMPTION: a species' residual is always the last instance 
+   if (nCO2 .gt. 0) then
+      call Util_AddInstance( CO2, 'residual', 'CO2', 44.0, .true., status)
+      VERIFY_(STATUS)
+      call RegisterInstanceWithMAPL( GC, 'CO2', 'residual', rc=status )
+      VERIFY_(STATUS)
+   endif
 
 !  CO2: Get passive instances and toggle them
    n = 0
@@ -396,8 +426,15 @@ contains
       ! Add new active instance
       call Util_AddInstance( CH4, trim(name), 'CH4', 16.043, .true., status)
       VERIFY_(STATUS)
-
    end do
+! If there are CH4 instances, then define an active residual by default   
+! ASSUMPTION: a species' residual is always the last instance 
+   if (nCH4 .gt. 0) then
+      call Util_AddInstance( CH4, 'residual', 'CH4', 16.043, .true., status)
+      VERIFY_(STATUS)
+      call RegisterInstanceWithMAPL( GC, 'CH4', 'residual', rc=status )
+      VERIFY_(STATUS)
+   endif
 
 !  CH4: Get passive instances and toggle them
    n = 0
@@ -434,29 +471,7 @@ contains
    call RegisterFluxWithMAPL( GC, cfg, 'CO' , RC )
    call RegisterFluxWithMAPL( GC, cfg, 'CO2', RC )
    call RegisterFluxWithMAPL( GC, cfg, 'CH4', RC )
-
-!  Add gas imports for CH4 & CO chemistry
-   call MAPL_AddImportSpec(GC,           &
-      SHORT_NAME = 'OH',                 &
-      LONG_NAME  = 'hydroxyl',           &
-      UNITS      = 'molecules cm-3',     &
-      DIMS       = MAPL_DimsHorzVert,    &
-      VLOCATION  = MAPL_VLocationCenter, &
-      __RC__)
-   call MAPL_AddImportSpec(GC,           &
-      SHORT_NAME = 'Cl',                 &
-      LONG_NAME  = 'atomic Cl',          &
-      UNITS      = 'molecules cm-3',     &
-      DIMS       = MAPL_DimsHorzVert,    &
-      VLOCATION  = MAPL_VLocationCenter, &
-      __RC__)
-   call MAPL_AddImportSpec(GC,           &
-      SHORT_NAME = 'O1D',                &
-      LONG_NAME  = 'singlet O',          &
-      UNITS      = 'molecules cm-3',     &
-      DIMS       = MAPL_DimsHorzVert,    &
-      VLOCATION  = MAPL_VLocationCenter, &
-      __RC__)
+! ===============================================================
 
 !  Set entry points
 !  ------------------------
@@ -570,14 +585,9 @@ contains
                          INTERNALspec = INTERNALspec, &
                          __RC__ )
 
-    n = size(INTERNALspec)
-    do i=1,n
-       if (MAPL_am_I_root()) write(*,*) '<<>>: ', trim(INTERNALspec(i)%SpecPtr%SHORT_NAME)
-    enddo
-
-    if (nCO2 .gt. 0) call ReadESMFConfig( import, internal, cfg, 'CO2', __RC__ )
-    if (nCO  .gt. 0) call ReadESMFConfig( import, internal, cfg, 'CO',  __RC__ )
-    if (nCH4 .gt. 0) call ReadESMFConfig( import, internal, cfg, 'CH4', __RC__ )
+    if (nCO2 .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CO2', __RC__ )
+    if (nCO  .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CO',  __RC__ )
+    if (nCH4 .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CH4', __RC__ )
 
 !    if (MAPL_am_I_root()) call util_dumpinstances()
 
@@ -626,7 +636,9 @@ contains
     use integration_mod
 
     ! Species chemistry modules
-    use CO_mod
+    use  COchem_mod
+    use CO2chem_mod
+    use CH4chem_mod
 
 !   !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
@@ -694,6 +706,8 @@ contains
     call MAPL_PackTime(params%NYMD,IYR,IMM,IDD)
     call MAPL_PackTime(params%NHMS,IHR,IMN,ISC)
 
+! ===============================================================
+!              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
 !   -----------------------------------
     call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__) ! pblh
@@ -716,30 +730,6 @@ contains
     allocate(  met%o3col(params%im,params%jm,params%km), __STAT__)
     allocate(  met%photj, mold=met%o3col, __STAT__)
 
-!  Update solar zenith angle
-!  --------------------------
-    call MAPL_SunGetInsolation(params%lons, params%lats, orbit, met%cosz, met%slr, clock=clock, __RC__)
-
-!  Compute the O3 column
-!  ---------------------
-   r = 6.022e26*0.50/(28.97*9.8) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90
-   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r
-   DO k=2,params%km
-      met%O3col(:,:,k) = met%O3col(:,:,k-1) + &
-                               (O3(:,:,k-1) * met%delp(:,:,k-1) + &
-                                O3(:,:,  k) * met%delp(:,:,  k))*r
-   END DO
-   
-!  Compute the photolysis rate for CO2 + hv -> CO + O*
-   met%photj = 0.e0
-   do k=1,params%km
-   do j=1,params%jm
-   do i=1,params%im
-      call jcalc4(i,j,params%km-k+1,met,met%photj(i,j,k))
-   enddo
-   enddo
-   enddo
-
 ! Get the instance data pointers
     do i=1,NINSTANCES
        call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
@@ -756,30 +746,73 @@ contains
 
     call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
     aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+! ===============================================================
 
+! ===============================================================
+!                S E T  U P  P H O T O L Y S I S
+!  Update solar zenith angle
+!  --------------------------
+    call MAPL_SunGetInsolation(params%lons, params%lats, orbit, met%cosz, met%slr, clock=clock, __RC__)
+
+!  Compute the O3 column
+!  ---------------------
+   r = 6.022e26*0.50/(28.97*9.8) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90
+   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r
+   DO k=2,params%km
+      met%O3col(:,:,k) = met%O3col(:,:,k-1) + r * &
+                        (O3(:,:,k-1) * met%delp(:,:,k-1) + O3(:,:,  k) * met%delp(:,:,  k))
+   END DO
+   
+!  Compute the photolysis rate for CO2 + hv -> CO + O*
+   met%photj = 0.e0
+   do k=1,params%km
+   do j=1,params%jm
+   do i=1,params%im
+      call jcalc4(i,j,params%km-k+1,met,met%photj(i,j,k))
+   enddo
+   enddo
+   enddo
+
+! ===============================================================
+
+! ===============================================================
+!                R U N  T H E  O P E R A T I O N S
 !   Aggregate instances into the totals prior to operations
     call util_aggregate( RC )
 
 !   Fill pointers for surface fluxes
-    if (associated(sfc_flux)) call fillFluxfromESMF( import, sfc_flux, __RC__ )
+    if (associated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
 
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
-    call CO_prodloss( CO, sfc_flux, params, met, OH, O1D, Cl, CH4_total, CO2_total, RC )
+    call  CO_prodloss( CO, OH, O1D, Cl, CH4_total, CO2_total, RC )
+    call CO2_prodloss(                                        RC ) ! Currently nothing in here. Just in case... 
+    call CH4_prodloss( CH4, OH, O1D, Cl,                      RC )
 
 !   -- surface fluxes for all instances
-    call Surface_prodloss( sfc_flux, met, params, RC )
+    call surface_prodloss( RC )
 
 !   -- integration
-    call integrate_forwardeuler( params, RC )
+    call integrate_forwardeuler( RC )
+
+!   -- post processing
+    if (cntrl%strictMassBalance) call util_accumulatenegatives( RC )
 
 !   Aggregate instances into the totals after operations
     call util_aggregate( RC )
+! ===============================================================
 
+! ===============================================================
+!      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+! ===============================================================
+
+! ===============================================================
+!                            D O N E
 !   Cleanup
     do i=1,NINSTANCES
-       nullify( instances(i)%p%prod, instances(i)%p%loss ) ! deallocate the prod/loss arrays for each instance
+       ! deallocate the prod/loss arrays for each instance
+       nullify( instances(i)%p%prod, instances(i)%p%loss )
     enddo
     deallocate(met%cosz, met%slr, met%o3col, met%photj, __STAT__ )
     VERIFY_(status)
@@ -790,14 +823,14 @@ contains
 
 !============================================================================
 
-  subroutine fillFluxfromESMF( import, sfc_flux, RC )
+  subroutine fillFluxes( import, sfc_flux, RC )
     type (ESMF_State),              intent(inout) :: import     ! Import state
     type(surface_flux),    pointer, intent(inout) :: sfc_flux(:)
     integer,                        intent(out)   :: RC
     
     integer :: i
 
-   __Iam__('GEOScarbon:fillFluxfromESMF')
+   __Iam__('GEOScarbon:fillFluxes')
 
     RC = 0
 
@@ -817,7 +850,7 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine fillFluxfromESMF
+  end subroutine fillFluxes
 
   subroutine RegisterFluxWithMAPL( GC, cfg, species, RC )
 
@@ -871,15 +904,25 @@ contains
     end do
   end subroutine RegisterFluxWithMAPL
 
-  subroutine RegisterInstanceWithMAPL( GC, species, name, RC )
+  subroutine RegisterInstanceWithMAPL( GC, species, name, DTM, RC )
     ! Named such because it is a MAPL-dependent routine
     ! written to keep a repetitive operation cleanly presentable.
     ! -- MSL
     type (ESMF_GridComp), intent(INOUT)   :: GC  ! gridded component
     character(*)                          :: species, name
+    logical, optional, intent(in)         :: DTM
     integer, optional                     :: RC
 
+    character(len=32) :: friendlies
+
     __Iam__('RegisterInstanceWithMAPL')
+
+    friendlies = 'DYNAMICS:TURBULENCE:MOIST'
+
+    ! Toggle whether or not to advect/mix/convect
+    if (present(DTM)) then
+       if (.not. DTM) friendlies = ''
+    endif
 
     call MAPL_AddInternalSpec(gc,&
          short_name =trim(species)//'_'//trim(name), &
@@ -888,7 +931,7 @@ contains
          dims       =MAPL_DimsHorzVert, &
          vlocation  =MAPL_VlocationCenter, &
 !         restart    =MAPL_RestartOptional, &
-         friendlyto ='DYNAMICS:TURBULENCE:MOIST', &
+         friendlyto =trim(friendlies),     &
          add2export =.true., & !<-- is this what makes it available for HISTORY?
          __RC__)
     
@@ -896,14 +939,13 @@ contains
 
   end subroutine RegisterInstanceWithMAPL
 
-  subroutine ReadESMFConfig( import, internal, cfg, species, RC )
+  subroutine ReadFluxEntries( import, internal, cfg, species, RC )
 ! Arguments
     integer,               optional             :: RC         ! Return code
     character(*),          intent(in)           :: species    ! Establishes the instance names
     type (ESMF_State),     intent(in)           :: import     ! Import state
     type (ESMF_State),     intent(in)           :: internal   ! Internal state
     type (ESMF_Config)                          :: cfg        ! Configuration
-!    type (surface_flux),   intent(out), pointer :: sfc_flux
 
 ! Locals
     logical            :: tend, diurnal, pblmix
@@ -911,9 +953,7 @@ contains
     character(len=255) :: string1, string2, string3, errmsg
     real               :: scalefactor
 
-!    type(surface_flux), pointer :: tmp_flux
-
-    __Iam__('ReadESMFConfig')
+    __Iam__('ReadFluxEntries')
 
     if( MAPL_AM_I_ROOT() ) then
        print *, 'GEOScarbon_GridComp: Reading config file:'
@@ -1059,7 +1099,7 @@ contains
        ! Increment list
        nlist = nlist + 1
 
-       call util_addsurfaceflux(sfc_flux, trim(string1), trim(string2), diurnal, pblmix, scalefactor, RC)
+       call util_addsurfaceflux(trim(string1), trim(string2), diurnal, pblmix, scalefactor, RC)
        VERIFY_(RC)
     enddo
     
@@ -1081,6 +1121,6 @@ contains
        RETURN_(ESMF_SUCCESS)
     end if
 
-  end subroutine ReadESMFConfig
+  end subroutine ReadFluxEntries
 end module GEOScarbon_GridCompMod
 

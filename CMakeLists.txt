@@ -2,7 +2,9 @@ esma_set_this ()
 
 set (srcs
     ${this}Mod.F90
-    CO_mod.F90
+    CH4chem_mod.F90
+    COchem_mod.F90
+    CO2chem_mod.F90
     geos_SimplePhotolysisMod.F90
     global_mod.F90
     integration_mod.F90

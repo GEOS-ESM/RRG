@@ -67,5 +67,8 @@ module types_mod
      real                           :: AIRMW
   end type parameters
   
+  type toggles
+     logical                        :: strictMassBalance = .false. ! default false
+  end type toggles
 
 end module types_mod

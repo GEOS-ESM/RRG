@@ -1,4 +1,4 @@
-MODULE  CO_mod
+MODULE  COchem_mod
 
   ! !USES:
 
@@ -31,19 +31,17 @@ CONTAINS
   ! !INTERFACE:
   !
 
-  SUBROUTINE CO_prodloss( COinst, sfc_flux, params, met, OH, O1D, Cl, CH4, CO2, RC )
+  SUBROUTINE CO_prodloss( COinst, OH, O1D, Cl, CH4, CO2, RC )
 
     !   !USES:
     use types_mod
-    use global_mod, only : instances, NINSTANCES
+    use global_mod
+    use utils_mod
 
     IMPLICIT NONE
 
     !   !INPUT PARAMETERS:
-    type(gas_instance), intent(inout) :: COinst(:)
-    type(parameters), intent(in)      :: params
-    type(meteorology), intent(in)     :: met
-    type(surface_flux), intent(in)    :: sfc_flux(:)
+    type(gas_instance), pointer, intent(inout) :: COinst(:)
 
     ! Reactants
     real, pointer, intent(in)     ::  OH(:,:,:)
@@ -63,16 +61,10 @@ CONTAINS
     !EOP
     !-------------------------------------------------------------------------
 
-    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_GridCompRun'
-    CHARACTER(LEN=*), PARAMETER :: Iam = myname
-
     real, pointer, dimension(:,:)   :: regionMask => null()
 
-    INTEGER :: im, jm, km, nst, ios, idiag, iXj
-    INTEGER :: i, j, k, kReverse, n
-    INTEGER :: nymd1, nhms1, ier(8)
-
-    REAL    :: qmin, qmax
+    INTEGER :: im, jm, km, nst, ios, idiag, iXj, ispc
+    INTEGER :: i, j, k, n
 
     !   Chem parameters
     real, allocatable  :: cvfac(:,:,:) ! Conversion factor from kg/kg -> mcl/cm3
@@ -84,11 +76,16 @@ CONTAINS
     !  Initialize local variables
     !  --------------------------
     rc = 0
+
+    if (.not. associated(COinst) .or. size(COinst) .eq. 0) return ! Nothing to do
+
     im = params%im
     jm = params%jm
     km = params%km
 
     iXj = im * jm 
+
+    ispc = ispecies('CO')
 
     !  Chemistry
     !  ASSUMPTION: all species units are input kg/kg
@@ -99,7 +96,6 @@ CONTAINS
     ! currently unused, since oxidants import as mcl/cm3 ... cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
     allocate(k_(im,jm,km), stat=RC)
     do nst = 1,size(COinst) ! cycle over instances
-       prod  => COinst(nst)%prod(:,:,:) ! in kg/kg/s
        loss  => COinst(nst)%loss(:,:,:) ! in kg/kg/s
        CO    => COinst(nst)%data3d(:,:,:) ! CO pointer makes the code cleaner
        
@@ -111,31 +107,36 @@ CONTAINS
        enddo
        loss = loss + k_*CO*OH
        
-       !  Production due to CH4 oxidation
-       !  -------------------------------
-       !            CH4 + OH -> CO + ... 
-       k_ = 2.45E-12*1.00E-06*exp(-1775./met%t) ! 2nd order
-       prod = prod + k_*CH4*OH 
-       
-       !            CH4 + Cl -> CO + ...
-       k_ = 7.10E-12*1.00E-06*exp(-1270./met%t) ! 2nd order
-       prod = prod + k_*CH4*Cl
-       
-       !            CH4 + O1D -> CO + ...
-       k_ = 1.75e-10 ! 2nd orders
-       prod = prod + k_*CH4*O1D
-       
-       !            CH4 + hv -> 2H2O + CO
-       !            CO2 + hv -> CO + ???
-       !     1st order (1/s); don't need CVFAC
-       !  ----------------------------------------------------------------------------
-       !prod = prod + met%photJ*CH4 <-- what to do about this? I don't think it's real <<>> MSL
-       prod = prod + met%photJ*CO2
-       
        CO   => null()
-       prod => null()
        loss => null()
     enddo
+
+    ! Process the prod terms into the residual
+    nst = size(COinst)
+    prod => COinst(nst)%prod(:,:,:)
+
+    !  Production due to CH4 oxidation
+    !  -------------------------------
+    !            CH4 + OH -> CO + ... 
+    k_ = 2.45E-12*1.00E-06*exp(-1775./met%t) ! 2nd order
+    prod = prod + k_*CH4*OH 
+
+    !            CH4 + Cl -> CO + ...
+    k_ = 7.10E-12*1.00E-06*exp(-1270./met%t) ! 2nd order
+    prod = prod + k_*CH4*Cl
+
+    !            CH4 + O1D -> CO + ...
+    k_ = 1.75e-10 ! 2nd orders
+    prod = prod + k_*CH4*O1D
+
+    !            CH4 + hv -> 2H2O + CO
+    !            CO2 + hv -> CO + ???
+    !     1st order (1/s); don't need CVFAC
+    !  ----------------------------------------------------------------------------
+    !prod = prod + met%photJ*CH4 <-- what to do about this? I don't think it's real <<>> MSL
+    prod = prod + met%photJ*CO2
+
+    prod => null()
 
     ! Surface and imported fluxes are computed externally
     ! by routine, Surface_ProdLoss(), and are not species
@@ -179,4 +180,4 @@ CONTAINS
 
   !-------------------------------------------------------------------------
 
-END MODULE CO_mod
+END MODULE COchem_mod

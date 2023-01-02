@@ -1,16 +1,58 @@
 #
-#  CH4 main resource file defining the particular instances.
+#  Carbon component:  main resource file defining the particular instances.
+#
+#  v0, Dec 5, 2022: M.Long - first crack 
 #
 #  For detailed description consult:
 #
 #  <<ReadTheDocs>>
 
-CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot
+CH4_instances: wetland industrial extract transport agwaste onat fire
  CO_instances: bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
 CO2_instances: biomass ff nep ocn
 
-# A tabular format is preferred above. It would allow several things
-# - fine control over each instance when it is declared
-# - easier-to-read-&-see functionality
-# - The ability to add comments to each instance
-# - ESMF routines for reading multiple pieces of info from a single line is not mature
+# Passive instances must be a subset of total instances above. They can be blank.
+ CO_passive_instances:
+CO2_passive_instances:
+CH4_passive_instances:
+
+# Surface flux pairs associate surface flux imports with carbon gas instances
+# instance | import | optional: d=diurnal scaling p=PBL <numeric> scale factor, in any order
+# -------------------------------------------------------------
+CO2_surface_flux_pairs::
+ biomass CO2_CMS_BIOMASS p 3.66445 # MW_CO2/MW_C = 3.66445
+ ff      CO2_CMS_FF
+ nep     CO2_CMS_NEP
+ ocn     CO2_CMS_OCN
+::
+
+CH4_surface_flux_pairs::
+ agwaste CH4_agwaste
+ extract CH4_extract
+ industrial CH4_industrial
+ transport CH4_transport
+ onat CH4_onat
+ fire CH4_fire
+ wetland CH4_wetland
+::
+
+#CO_surface_flux_pairs::
+#CO_BIOMASS
+#CO_OH
+#CO_CH4
+#CO_BF
+#CO_FS
+#CO_ISOP
+#CO_NVOC
+#CO_TERP
+#::
+
+# Masks 
+# instance name -i <integer> -d lat1,lat2,lon1,lon2
+# -i : integer read from file. The file is specified in *Extdata.rc and auto-associated via an instance's species
+# -d : define lat/lon; format lat1,lat2,lon1,lon2
+masks::
+
+::
+
+photolysisFile: ExtData/g5chem/x/SC.J_20_12_79_72_200_38.nc4

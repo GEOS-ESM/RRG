@@ -9,6 +9,7 @@ Development notes:
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
 ** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
 * TODO Error control     
+** repeat instances
 * BETA Initialization
 ** Interface
    Keep everything runtime controlled. As much as possible.

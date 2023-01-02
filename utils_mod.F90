@@ -162,6 +162,18 @@ module utils_mod
 
     end subroutine util_addinstance
 
+    subroutine util_AddMask( status )
+
+      implicit none
+
+      integer, intent(out) :: status
+
+      status = 0 ! Assume success
+
+      return
+      
+    end subroutine util_AddMask
+
     subroutine util_addsurfaceflux( pair, name, d, p, scalefactor, status)
 
       use global_mod

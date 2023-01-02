@@ -468,9 +468,21 @@ contains
    endif
 
 ! Fluxes
-   call RegisterFluxWithMAPL( GC, cfg, 'CO' , RC )
-   call RegisterFluxWithMAPL( GC, cfg, 'CO2', RC )
-   call RegisterFluxWithMAPL( GC, cfg, 'CH4', RC )
+   call RegisterFluxWithMAPL( GC, cfg, 'CO' , status )
+   VERIFY_(status)
+   call RegisterFluxWithMAPL( GC, cfg, 'CO2', status )
+   VERIFY_(status)
+   call RegisterFluxWithMAPL( GC, cfg, 'CH4', status )
+   VERIFY_(status)
+
+! Masks
+   call ReadMasksTable( cfg, 'CO' , status )
+   VERIFY_(status)
+   call ReadMasksTable( cfg, 'CO2', status )
+   VERIFY_(status)
+   call ReadMasksTable( cfg, 'CH4', status )
+   VERIFY_(status)
+
 ! ===============================================================
 
 !  Set entry points
@@ -585,9 +597,9 @@ contains
                          INTERNALspec = INTERNALspec, &
                          __RC__ )
 
-    if (nCO2 .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CO2', __RC__ )
-    if (nCO  .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CO',  __RC__ )
-    if (nCH4 .gt. 0) call ReadFluxEntries( import, internal, cfg, 'CH4', __RC__ )
+    if (nCO2 .gt. 0) call Readfluxtable( import, internal, cfg, 'CO2', __RC__ )
+    if (nCO  .gt. 0) call Readfluxtable( import, internal, cfg, 'CO',  __RC__ )
+    if (nCH4 .gt. 0) call Readfluxtable( import, internal, cfg, 'CH4', __RC__ )
 
 !    if (MAPL_am_I_root()) call util_dumpinstances()
 
@@ -939,7 +951,7 @@ contains
 
   end subroutine RegisterInstanceWithMAPL
 
-  subroutine ReadFluxEntries( import, internal, cfg, species, RC )
+  subroutine ReadFluxTable( import, internal, cfg, species, RC )
 ! Arguments
     integer,               optional             :: RC         ! Return code
     character(*),          intent(in)           :: species    ! Establishes the instance names
@@ -953,7 +965,7 @@ contains
     character(len=255) :: string1, string2, string3, errmsg
     real               :: scalefactor
 
-    __Iam__('ReadFluxEntries')
+    __Iam__('Readfluxtable')
 
     if( MAPL_AM_I_ROOT() ) then
        print *, 'GEOScarbon_GridComp: Reading config file:'
@@ -1121,6 +1133,148 @@ contains
        RETURN_(ESMF_SUCCESS)
     end if
 
-  end subroutine ReadFluxEntries
+  end subroutine ReadFluxTable
+
+  subroutine ReadMasksTable( cfg, species, RC )
+
+    implicit none
+
+    type(ESMF_Config)        :: cfg     ! Configuration
+    character(*), intent(in) :: species
+    integer, intent(out)     :: RC
+
+    logical       :: tend, present, isbox
+    character(32) :: name, string, lstr
+    integer       :: i, imask, ierr, loc1, loc2
+    real          :: lat1,lat2,lon1,lon2
+
+    __Iam__('ReadMasksTable')
+
+    ! Read the table in config
+    call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=present,rc=status )
+    VERIFY_(status)
+
+    RC    = 0 ! Assume success
+
+    ! Set up the read loop
+    tend  = .false.
+    do while (.not.tend)
+       ! Presets 
+       imask = -999
+       lon1  = -999.9
+       lon2  = -999.9
+       lat1  = -999.9
+       lat2  = -999.9
+       isbox = .false.
+
+       call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=status )
+       VERIFY_(status)
+       if (tend) cycle
+
+       ! Get instance name
+       ! 1st field is the instance name associated with the mask
+       call ESMF_ConfigGetAttribute ( cfg,value=name, default='',rc=status)
+       if (name .ne. '') then ! If blank, cycle
+          ! The the import pair
+          call ESMF_ConfigGetAttribute ( cfg,value=string, default='',rc=status) ! 2nd field is the flux import name
+          if (string .ne. '') then
+             ! is it an integer or a lat/lon bound?
+             if (is_numeric(string) .and. index(string,',') .eq. 0) then
+                ! If its a number, it better be an integer!
+                read(string,'(i10)',iostat=ierr) imask ! does string fit into a 10-digit integer?
+                if ( ierr .ne. 0 ) then
+                   ! not an integer
+                   write(*,'(a)') 'Error reading mask named '//trim(name)//'. Expected an integer, got '//trim(string)//'. Exiting'
+                   RC = -1
+                   return
+                endif
+             else
+                ! if not, lets make sure it looks like a lat/lon bounding box, e.g. lat1,lat2,lon1,lon2
+                ! The following logic isn't perfect and doesn't (yet) account for a full suite of scenarios
+                
+                ! process lat1
+                loc1 = index(string(:),',') ! Find the 1st delimiter
+                if (loc1 .gt. 0) then
+                   read(string(1:loc1-1), *) lstr
+                   if (is_numeric(lstr)) then
+                      read(lstr,*) lat1
+                   else
+                      ! error
+                      write(*,*) 'ReadMasksTable: Error processing 1st latitude bound of mask '//trim(name)
+                      RC = -1
+                      return
+                   endif
+                else
+                   ! No delimters? Error!
+                endif
+                
+                ! process lat2
+                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 2nd delimiter
+                if (loc2 .gt. 0) then
+                   write(*,*) '<<>> LOCS: ', loc1, loc2, string(loc1+1:loc2-1)
+                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
+                   if (is_numeric(lstr)) then
+                      read(lstr,*) lat2
+                   else
+                      ! error
+                      write(*,*) 'ReadMasksTable: Error processing 2nd latitude bound of mask '//trim(name),trim(lstr)
+                      RC = -1
+                      return
+                   endif
+                   loc1 = loc2 ! stride forward
+                else
+                   ! No delimters? Error!
+                endif
+                
+                ! process lon1 & lon2 together
+                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 3rd delimiter
+                if (loc2 .gt. 0) then
+                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
+                   if (is_numeric(lstr)) then
+                      read(lstr,*) lon1
+                   else
+                      ! error
+                      write(*,*) 'ReadMasksTable: Error processing 1st longitude bound of mask '//trim(name),trim(lstr)
+                      RC = -1
+                      return
+                   endif
+                   read(string(loc2+1:),*) lstr ! Read last entry
+                   if (is_numeric(lstr)) then
+                      read(lstr,*) lon2
+                   else
+                      ! error
+                      write(*,*) 'ReadMasksTable: Error processing 2nd longitude bound of mask '//trim(name),trim(lstr)
+                      RC = -1
+                      return
+                   endif
+                   ! Fin
+                else
+                   ! No delimters? Error!
+                   write(*,*) 'ReadMasksTable: Mask setting for '//trim(name)//' is neither an integer nor a proper lat/lon box'
+                   RC = -1
+                   return
+                endif
+                ! If we got here, then we have successfully processed a lat/lon box
+                isbox = .true.
+             endif
+          else
+             write(*,*) 'ReadMaskTable: No settings specified for mask '//trim(name)
+             RC = -1
+             return
+          endif
+          ! If we got here, then we have successfully processed a mask
+          ! Register the mask
+          call util_AddMask( status )
+          VERIFY_(status)
+       else
+          cycle
+       endif
+!       write(*,*) '<<>> MASK: ', trim(name), imask, trim(string), lat1,lat2,lon1,lon2
+    end do
+
+    return
+    
+  end subroutine ReadMasksTable
+
 end module GEOScarbon_GridCompMod
 

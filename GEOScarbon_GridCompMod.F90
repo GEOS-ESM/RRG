@@ -90,131 +90,15 @@ contains
 !==============================================================
 !           S E T  T H E  I M P O R T  S T A T E
 
-! 3-D
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'T',                                   &
-       LONG_NAME  = 'air_temperature',                     &
-       UNITS      = 'K',                                   &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-        SHORT_NAME = 'U10M',                               &
-        LONG_NAME  = '10-meter_eastward_wind',             &
-        UNITS      = 'm s-1',                              &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-    
-    call MAPL_AddImportSpec(GC,                            &
-        SHORT_NAME = 'V10M',                               &
-        LONG_NAME  = '10-meter_northward_wind',            &
-        UNITS      = 'm s-1',                              &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'Q',                                   &
-       LONG_NAME  = 'specific_humidity',                   &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'QCTOT',                               &
-       LONG_NAME  = 'mass_fraction_of_total_cloud_water',  &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter, __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'ZLE',                                 &
-       LONG_NAME  = 'geopotential_height',                 &
-       UNITS      = 'm',                                   &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'DELP',                                &
-       LONG_NAME  = 'pressure_thickness',                  &
-       UNITS      = 'Pa',                                  &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'PLE',                                 &
-       LONG_NAME  = 'pressure_at_edges',                   &
-       UNITS      = 'Pa',                                  &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'AIRDENS',                             &
-       LONG_NAME  = 'air_density',                         &
-       UNITS      = 'kg m-3',                              &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'O3',                                  &
-       LONG_NAME  = 'ozone',                               &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       __RC__)
-
-    !  Add gas imports for CH4 & CO chemistry
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'OH',                                  &
-       LONG_NAME  = 'hydroxyl',                            &
-       UNITS      = 'molecules cm-3',                      &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'Cl',                                  &
-       LONG_NAME  = 'atomic Cl',                           &
-       UNITS      = 'molecules cm-3',                      &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       __RC__)
-
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'O1D',                                 &
-       LONG_NAME  = 'singlet O',                           &
-       UNITS      = 'molecules cm-3',                      &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       __RC__)
-
-! 2-D
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'ZPBL',                               &
-        LONG_NAME  = 'Planetary boundary layer height',    &
-        UNITS      = 'm',                                  &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,    __RC__)
-
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'PS',                                 &
-        LONG_NAME  = 'surface_pressure',                   &
-        UNITS      = 'Pa',                                 &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
+! using include is just so much cleaner
+#include "IMPORTS.h" 
 
 ! ===============================================================
 !      S E T  U P  T H E  E X P O R T  S T A T E
-     ! Currently nothing
+
+! using include is just so much cleaner
+#include "EXPORTS.h" 
+
 ! ===============================================================
 
 ! ===============================================================
@@ -259,6 +143,17 @@ contains
         restart    =MAPL_RestartOptional,  &
         add2export =.true., & !<-- is this what makes it available for HISTORY?
         __RC__)
+
+!  CO: Create a region mask import
+   if (nCO .gt. 0) then
+   call MAPL_AddImportSpec(GC,                             &
+        SHORT_NAME = 'CO_GHG_regionMask',                      &
+        LONG_NAME  = '',                                   &
+        UNITS      = '',                                   &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+   endif
 
 !  CO: Get instances from RC file
 !  ----------------------------------
@@ -336,6 +231,17 @@ contains
    VERIFY_(STATUS)
    nCO2 = n
 
+!  CO2: Create a region mask import
+   if (nCO2 .gt. 0) then
+   call MAPL_AddImportSpec(GC,                             &
+        SHORT_NAME = 'CO2_GHG_regionMask',                     &
+        LONG_NAME  = '',                                   &
+        UNITS      = '',                                   &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+   endif
+
 !  CO2: Get instances from RC file
 !  ----------------------------------
    call ESMF_ConfigFindLabel(cfg,'CO2_instances:',rc=status)
@@ -411,6 +317,17 @@ contains
    VERIFY_(STATUS)
    nCH4 = n
 
+!  CH4: Create a region mask import
+   if (nCH4 .gt. 0) then
+   call MAPL_AddImportSpec(GC,                             &
+        SHORT_NAME = 'CH4_GHG_regionMask',                     &
+        LONG_NAME  = '',                                   &
+        UNITS      = '',                                   &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,   __RC__)
+   endif
+
 !  CH4: Get instances from RC file
 !  ----------------------------------
    call ESMF_ConfigFindLabel(cfg,'CH4_instances:',rc=status)
@@ -473,14 +390,6 @@ contains
    call RegisterFluxWithMAPL( GC, cfg, 'CO2', status )
    VERIFY_(status)
    call RegisterFluxWithMAPL( GC, cfg, 'CH4', status )
-   VERIFY_(status)
-
-! Masks
-   call ReadMasksTable( cfg, 'CO' , status )
-   VERIFY_(status)
-   call ReadMasksTable( cfg, 'CO2', status )
-   VERIFY_(status)
-   call ReadMasksTable( cfg, 'CH4', status )
    VERIFY_(status)
 
 ! ===============================================================
@@ -592,14 +501,19 @@ contains
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
-                         LONS = params%LONS, &
-                         LATS = params%LATS, &
+                         LONS = params%LONS, &  ! Radians
+                         LATS = params%LATS, &  ! Radians
                          INTERNALspec = INTERNALspec, &
                          __RC__ )
 
-    if (nCO2 .gt. 0) call Readfluxtable( import, internal, cfg, 'CO2', __RC__ )
-    if (nCO  .gt. 0) call Readfluxtable( import, internal, cfg, 'CO',  __RC__ )
-    if (nCH4 .gt. 0) call Readfluxtable( import, internal, cfg, 'CH4', __RC__ )
+    if (nCO  .gt. 0) call ReadFluxTable( import, internal, cfg, 'CO',  __RC__ )
+    if (nCO2 .gt. 0) call ReadFluxTable( import, internal, cfg, 'CO2', __RC__ )
+    if (nCH4 .gt. 0) call ReadFluxTable( import, internal, cfg, 'CH4', __RC__ )
+
+! Masks
+   if (nCO  .gt. 0) call ReadMasksTable( import, cfg, CO , __RC__ )
+   if (nCO2 .gt. 0) call ReadMasksTable( import, cfg, CO2, __RC__ )
+   if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
 
 !    if (MAPL_am_I_root()) call util_dumpinstances()
 
@@ -678,8 +592,9 @@ contains
 
     integer                           :: iCO2, iCH4, iCO
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
-    logical :: first = .true.
+    logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
+    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
     real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D 
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
     real(ESMF_KIND_R4), allocatable :: SLR(:,:)
@@ -761,6 +676,13 @@ contains
 ! ===============================================================
 
 ! ===============================================================
+!                   P R O C E S S  M A S K S
+    if (first) then
+       call ProcessExtdataMasks( IMPORT, __RC__ ) 
+       first = .false.
+    endif
+
+! ===============================================================
 !                S E T  U P  P H O T O L Y S I S
 !  Update solar zenith angle
 !  --------------------------
@@ -819,6 +741,12 @@ contains
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 ! ===============================================================
 
+    call MAPL_GetPointer( EXPORT, Ptr2D, 'namerica_mask', __RC__)
+    if (associated(Ptr2D)) then
+       Ptr2D = instances(iinstance('namerica'))%p%mask
+       Ptr2d => null()
+    endif
+    
 ! ===============================================================
 !                            D O N E
 !   Cleanup
@@ -1135,26 +1063,32 @@ contains
 
   end subroutine ReadFluxTable
 
-  subroutine ReadMasksTable( cfg, species, RC )
+  subroutine ReadMasksTable( import, cfg, instance, RC )
 
     implicit none
 
-    type(ESMF_Config)        :: cfg     ! Configuration
-    character(*), intent(in) :: species
-    integer, intent(out)     :: RC
+    type (ESMF_State)                 :: import     ! Import state
+    type(ESMF_Config)                 :: cfg     ! Configuration
+    type(gas_instance), intent(inout) :: instance(:)
+    integer, intent(out)              :: RC
 
-    logical       :: tend, present, isbox
-    character(32) :: name, string, lstr
-    integer       :: i, imask, ierr, loc1, loc2
-    real          :: lat1,lat2,lon1,lon2
-
+    logical       :: tend, present, found
+    character(32) :: name, string, lstr, species
+    integer       :: i, imask, ierr, loc1, loc2, ii, jj
+    real          :: lat1,lat2,lon1,lon2,ltmp
+    real, pointer :: ptr2d(:,:)
     __Iam__('ReadMasksTable')
+
+    species = trim(instance(1)%species)
 
     ! Read the table in config
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=present,rc=status )
     VERIFY_(status)
+    
 
     RC    = 0 ! Assume success
+    
+    if (.not. present) return
 
     ! Set up the read loop
     tend  = .false.
@@ -1165,7 +1099,6 @@ contains
        lon2  = -999.9
        lat1  = -999.9
        lat2  = -999.9
-       isbox = .false.
 
        call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=status )
        VERIFY_(status)
@@ -1179,12 +1112,12 @@ contains
           call ESMF_ConfigGetAttribute ( cfg,value=string, default='',rc=status) ! 2nd field is the flux import name
           if (string .ne. '') then
              ! is it an integer or a lat/lon bound?
-             if (is_numeric(string) .and. index(string,',') .eq. 0) then
+             if (is_numeric(string) .and. index(string,',') .eq. 0) then ! Is a number and doesn't have commas?
                 ! If its a number, it better be an integer!
                 read(string,'(i10)',iostat=ierr) imask ! does string fit into a 10-digit integer?
                 if ( ierr .ne. 0 ) then
                    ! not an integer
-                   write(*,'(a)') 'Error reading mask named '//trim(name)//'. Expected an integer, got '//trim(string)//'. Exiting'
+                   write(*,'(a)') 'ReadMasksTable: Error reading mask named '//trim(name)//'. Expected an integer, got '//trim(string)//'. Exiting'
                    RC = -1
                    return
                 endif
@@ -1211,7 +1144,6 @@ contains
                 ! process lat2
                 loc2 = index(string(loc1+1:),',')+loc1 ! Find the 2nd delimiter
                 if (loc2 .gt. 0) then
-                   write(*,*) '<<>> LOCS: ', loc1, loc2, string(loc1+1:loc2-1)
                    read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
                    if (is_numeric(lstr)) then
                       read(lstr,*) lat2
@@ -1255,7 +1187,6 @@ contains
                    return
                 endif
                 ! If we got here, then we have successfully processed a lat/lon box
-                isbox = .true.
              endif
           else
              write(*,*) 'ReadMaskTable: No settings specified for mask '//trim(name)
@@ -1264,8 +1195,69 @@ contains
           endif
           ! If we got here, then we have successfully processed a mask
           ! Register the mask
-          call util_AddMask( status )
+          ! -- first find the instance name
+          found = .false.
+          do i=1,size(instance)
+             if (trim(name) .eq. trim(instance(i)%name)) then
+                found = .true.
+                exit
+             endif
+          enddo
+          if (.not. found) then
+             write(*,*) 'ReadMasksTable: not able to find instance '//trim(name)//' associated with '//trim(instance(1)%species)
+             RC = -1
+             return
+          endif
+          ! -- populate
+          instance(i)%hasmask = .true.
+          allocate(instance(i)%mask(params%im,params%jm),stat=status)
           VERIFY_(status)
+          if (imask .ne. -999) then
+             ! If imask isn't -999, then associate with the import field
+             instance(i)%imask = imask
+           elseif (.not. any((/lat1,lat2,lon1,lon2/).eq.-999.9))then
+             ! else build a box from the lats/lons
+             ! This is primitively done
+             ! 1) convert box to radians
+             lat1 = lat1 * MAPL_PI/180.0
+             lat2 = lat2 * MAPL_PI/180.0
+             if (lon1 .lt. 0.) then
+                lon1 = (lon1 + 360.0) * MAPL_PI/180.0
+             else
+                lon1 = lon1 * MAPL_PI/180.0
+             endif
+             if (lon2 .lt. 0.) then
+                lon2 = (lon2 + 360.0) * MAPL_PI/180.0
+             else
+                lon2 = lon2 * MAPL_PI/180.0
+             endif
+             ! 2) Populate mask
+             instance(i)%mask = 0
+             do jj=1,params%jm
+                do ii=1,params%im
+                   if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
+                   if ( params%lats(ii,jj) .ge. lat1 .and. &
+                        params%lats(ii,jj) .le. lat2 .and. &
+                        params%lons(ii,jj) .ge. lon1 .and. &
+                        params%lons(ii,jj) .le. lon2 ) then
+                      instance(i)%mask(ii,jj) = 1
+                   endif
+                   else ! We straddle the prime meridian
+                   if ( params%lats(ii,jj) .ge. lat1 .and. &
+                        params%lats(ii,jj) .le. lat2 .and. &
+                        params%lons(ii,jj) .ge. lon1 .and. &
+                        params%lons(ii,jj)-2.*MAPL_PI .le. lon2 ) then
+                      instance(i)%mask(ii,jj) = 1
+                   endif
+                   endif
+                enddo
+             enddo
+             write(*,'(a,4f14.5,i3)') '<<>> MASK: ', lat1,lat2,lon1,lon2,maxval(instance(i)%mask)
+          else
+             write(*,*) 'Error processing mask for '//trim(species)//'::'//trim(name) 
+             RC = -1
+             return
+          endif
        else
           cycle
        endif
@@ -1275,6 +1267,34 @@ contains
     return
     
   end subroutine ReadMasksTable
+
+  subroutine ProcessExtdataMasks( import, RC ) 
+
+    implicit none
+    type (ESMF_State)           :: import     ! Import state
+    integer, intent(out)        :: RC
+
+    integer                     :: i,j,nst
+    real, pointer               :: Ptr2D(:,:)
+    type(gas_instance), pointer :: instance
+    character(32)               :: species
+
+    RC = 0
+
+    do nst=1,NINSTANCES
+       instance => instances(nst)%p
+       if (instance%imask .ne. -999) then
+          species = instance%species
+          instance%mask = 0
+          call MAPL_GetPointer(import, Ptr2D, trim(species)//'_GHG_regionMask', RC=RC)
+          if (RC .ne. ESMF_SUCCESS) return
+          where (Ptr2D .eq. instance%imask) instance%mask = 1
+          Ptr2D => null()
+       endif
+       instance => null()
+    enddo
+    
+  end subroutine ProcessExtdataMasks
 
 end module GEOScarbon_GridCompMod
 

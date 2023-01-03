@@ -10,6 +10,8 @@ module utils_mod
   contains
 
     subroutine util_accumulatenegatives( status )
+
+      ! INCOMPLETE
       use global_mod, only: NINSTANCES, instances
       integer,      intent(out)      :: status
 
@@ -53,7 +55,7 @@ module utils_mod
       ! local
       integer                        :: i,n
       type(gas_instance), pointer    :: tmp(:)
-      type(inst), pointer            :: atmp(:)
+      type(inst_), pointer           :: atmp(:)
       integer, allocatable           :: tind(:)
       character(32), allocatable     :: tspc(:)
       logical                        :: found
@@ -162,18 +164,6 @@ module utils_mod
 
     end subroutine util_addinstance
 
-    subroutine util_AddMask( status )
-
-      implicit none
-
-      integer, intent(out) :: status
-
-      status = 0 ! Assume success
-
-      return
-      
-    end subroutine util_AddMask
-
     subroutine util_addsurfaceflux( pair, name, d, p, scalefactor, status)
 
       use global_mod
@@ -275,7 +265,7 @@ module utils_mod
       do n=1,nspecies
          aggregate(n)%q = 0.e0
          do i=1,NINSTANCES
-            if (instances(i)%p%ispecies .eq. n) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
+            if (instances(i)%p%ispecies .eq. n .and. instances(i)%p%active) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
          enddo
       enddo
 
@@ -314,6 +304,48 @@ module utils_mod
 
     end subroutine util_dumpinstances
 
+    subroutine util_masksparsity( mask, inonzero, jnonzero, status )
+
+      implicit none
+
+      integer, intent(in)  :: mask(:,:)
+      integer, pointer     :: inonzero(:)
+      integer, pointer     :: jnonzero(:)
+      integer, intent(out) :: status
+
+      integer :: i,j,im,jm, nz, idx
+
+      status = 0 ! Assume success
+
+      ! Get dims
+      im = size(mask,dim=1)
+      jm = size(mask,dim=2)
+      nz = count(mask.ne.0)
+
+      if (associated(inonzero)) nullify(inonzero)
+      if (associated(jnonzero)) nullify(jnonzero)
+
+      allocate(inonzero(nz), jnonzero(nz), stat=status)
+      if (status .ne. 0 ) return
+
+      idx = 0
+      do j=1,jm
+         do i=1,im
+            if (mask(i,j) .ne. 0 ) then
+               idx = idx+1
+               if (idx .gt. nz) then
+                  write(*,*) 'util_masksparsity: improper mask indexing. idx > number of nonzero elements'
+                  status = -1
+                  return
+               endif
+               inonzero(idx) = i
+               jnonzero(idx) = j
+            endif
+         enddo
+      enddo
+      
+    end subroutine util_masksparsity
+
     function is_numeric(string)
       implicit none
       character(len=*), intent(in) :: string
@@ -337,5 +369,19 @@ module utils_mod
          endif
       enddo
     end function ispecies
+
+    function iinstance(string)
+      use global_mod
+      implicit none
+      character(len=*), intent(in) :: string
+      integer :: iinstance, i
+      iinstance = -1 ! Default to 'not found'
+      do i=1,NINSTANCES
+         if (trim(string) .eq. trim(instances(i)%p%name)) then
+            iinstance = i
+            return
+         endif
+      enddo
+    end function iinstance
 
 end module utils_mod

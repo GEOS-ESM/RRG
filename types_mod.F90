@@ -10,11 +10,17 @@ module types_mod
      character(len=255)              :: name, species
      integer                         :: index
      integer                         :: ispecies
+     logical                         :: hasMask = .false.
+     integer                         :: imask = -999
+     integer, pointer                :: mask(:,:) => null()
+     ! Sparse mask indices. For future use
+     integer, pointer                :: mask_inonzero(:) => null() ! We want this to be saved
+     integer, pointer                :: mask_jnonzero(:) => null() ! We want this to be saved
   end type gas_instance
 
-  type inst
+  type inst_
      type(gas_instance), pointer     :: p
-  end type inst
+  end type inst_
 
   type aggr
      real, pointer                   :: q(:,:,:)

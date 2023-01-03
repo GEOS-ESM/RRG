@@ -1,14 +1,13 @@
 #+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
 Development notes:
 * TODO:
-  Masks
-  Passives
   Mass balance
+  CH4 photochem
 * Open Questions:
 ** How to control if a species itself is active?
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
 ** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
-* TODO Error control     
+* TODO Error control
 ** repeat instances
 * BETA Initialization
 ** Interface
@@ -19,8 +18,9 @@ Development notes:
 **** Read in passives
      What if name in passive list isn't an instance? Error out. %%%
      
+** BETA Masks
 * IN-PROGRESS Run
-** IN-PROGRESS Surface
+** BETA Surface
    Surface/external fluxes have to be handled carefully
    - fluxes 'in' can be added to a specific instance
    - fluxes 'out' have to be partitioned evenly over all instances
@@ -62,4 +62,4 @@ Development notes:
 ** coupling to other components
 ** using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
    currently relies on strings. String searches are wet blankets
-** MASKS!
+** BETA MASKS!

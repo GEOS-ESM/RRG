@@ -691,7 +691,7 @@ contains
 !  Compute the O3 column
 !  ---------------------
    r = 6.022e26*0.50/(28.97*9.8) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90
-   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r
+   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r ! 1.1e15 = O3 above 80km. Units?
    DO k=2,params%km
       met%O3col(:,:,k) = met%O3col(:,:,k-1) + r * &
                         (O3(:,:,k-1) * met%delp(:,:,k-1) + O3(:,:,  k) * met%delp(:,:,  k))

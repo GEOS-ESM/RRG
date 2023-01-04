@@ -9,11 +9,11 @@
 
 CH4_instances: wetland industrial extract transport agwaste onat fire
  CO_instances: bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
-CO2_instances: biomass ff nep ocn
+CO2_instances: biomass ff nep ocn namerica
 
 # Passive instances must be a subset of total instances above. They can be blank.
  CO_passive_instances:
-CO2_passive_instances:
+CO2_passive_instances: namerica
 CH4_passive_instances:
 
 # Surface flux pairs associate surface flux imports with carbon gas instances
@@ -24,6 +24,10 @@ CO2_surface_flux_pairs::
  ff      CO2_CMS_FF
  nep     CO2_CMS_NEP
  ocn     CO2_CMS_OCN
+ namerica CO2_CMS_BIOMASS p 3.66445 # MW_CO2/MW_C = 3.66445
+ namerica CO2_CMS_FF
+ namerica CO2_CMS_NEP
+ namerica CO2_CMS_OCN
 ::
 
 CH4_surface_flux_pairs::
@@ -47,12 +51,9 @@ CH4_surface_flux_pairs::
 #CO_TERP
 #::
 
-# Masks 
-# instance name -i <integer> -d lat1,lat2,lon1,lon2
-# -i : integer read from file. The file is specified in *Extdata.rc and auto-associated via an instance's species
-# -d : define lat/lon; format lat1,lat2,lon1,lon2
-masks::
-
+CO2_masks::
+ namerica 2
+# namerica 5,45,-18,5
 ::
 
 photolysisFile: ExtData/g5chem/x/SC.J_20_12_79_72_200_38.nc4

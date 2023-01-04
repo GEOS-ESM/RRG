@@ -28,8 +28,9 @@ PrimaryExports%%
  Cl             'molec cm-3'        Y N  0  none     none     cl             /discover/nobackup/bweir/fluxes/CH4/gmi_oxidants_v1.x144_y91_z72.t12.2006.nc
  O1D            'molec cm-3'        Y N  0  none     none     o1d            /discover/nobackup/bweir/fluxes/CH4/gmi_oxidants_v1.x144_y91_z72.t12.2006.nc
 
- CO2_regionMask  NA                  N v   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
- CH4_regionMask  NA                  N v   -                   none     none     REGION_MASK   /discover/nobackup/bweir/fluxes/masks/transcom.region_mask.x576_y361.2006.nc
- CO_regionMask   NA                  N V   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+# CO2_regionMask  NA                  N v   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+ CO2_GHG_regionMask  NA                  N v   -                   none     none     REGION_MASK   /discover/nobackup/bweir/fluxes/masks/transcom.region_mask.x576_y361.2006.nc
+ CH4_GHG_regionMask  NA                  N v   -                   none     none     REGION_MASK   /discover/nobackup/bweir/fluxes/masks/transcom.region_mask.x576_y361.2006.nc
+ CO_GHG_regionMask   NA                  N V   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
 #---------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------   
 %%

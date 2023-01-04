@@ -69,16 +69,6 @@ contains
     !   rc = 0
     !   photJ(:,:,:) = 0
     !
-    !   i1 = w_c%grid%i1
-    !   i2 = w_c%grid%i2
-    !   j1 = w_c%grid%j1
-    !   j2 = w_c%grid%j2
-    !   km = w_c%grid%km
-    !
-    !   ! Get pointers
-    !   call MAPL_GetPointer(impChem, rhowet, 'AIRDENS', __RC__)
-    !   call MAPL_GetPointer(impChem, ple, 'PLE', __RC__)
-    !
     !   b = sqrt(0.50*r0/hbar)
     !
     !   ! O2 overhead number density profile [cm^{-2}]

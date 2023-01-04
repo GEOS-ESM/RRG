@@ -596,12 +596,13 @@ contains
 
     real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
     real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D 
+    real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
     real(ESMF_KIND_R4), allocatable :: SLR(:,:)
     type (MAPL_SunOrbit)            :: ORBIT
     type(ESMF_Alarm)                :: ALARM
 
-    real                            :: r
+    real                            :: r, m
 
    __Iam__('Run1')
 
@@ -654,8 +655,8 @@ contains
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
-    allocate(  met%o3col(params%im,params%jm,params%km), __STAT__)
-    allocate(  met%photj, mold=met%o3col, __STAT__)
+    allocate(  O3col(params%im,params%jm,params%km), __STAT__)
+    allocate(  O2col, CO2photj, CH4photj, mold=o3col, __STAT__)
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -688,24 +689,27 @@ contains
 !  --------------------------
     call MAPL_SunGetInsolation(params%lons, params%lats, orbit, met%cosz, met%slr, clock=clock, __RC__)
 
-!  Compute the O3 column
+!  Compute the O2 & O3 column
 !  ---------------------
-   r = 6.022e26*0.50/(28.97*9.8) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90
-   met%O3col(:,:,1) = 1.1e15 + O3(:,:,1)*met%delp(:,:,1)*r ! 1.1e15 = O3 above 80km. Units?
-   DO k=2,params%km
-      met%O3col(:,:,k) = met%O3col(:,:,k-1) + r * &
-                        (O3(:,:,k-1) * met%delp(:,:,k-1) + O3(:,:,  k) * met%delp(:,:,  k))
-   END DO
-   
+    r = 6.022e26*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = 6.022e23*(1e3 g/kg)
+    m = MAPL_AIRMW/48.0e0  ! MW_air/MW_O3
+    O3col(:,:,1) = 1.1e11       + m*O3(:,:,1)* met%delp(:,:,1)*r ! 1.1e11 = O3 above 80km (cm-2); O3 is mmr, we need vmr for this so MW conversion is done here
+    O2col(:,:,1) = 7.072926E+19 +   0.20946  * met%delp(:,:,1)*r ! 7.072926E+19 = O2 above 80 km (cm-2); O2VMR = 0.20946
+    DO k=2,params%km
+       O3col(:,:,k) = O3col(:,:,k-1) + m*r*(O3(:,:,k-1)*met%delp(:,:,k-1) + O3(:,:,k)*met%delp(:,:,k))
+       O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))
+    END DO
+    
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
-   met%photj = 0.e0
-   do k=1,params%km
-   do j=1,params%jm
-   do i=1,params%im
-      call jcalc4(i,j,params%km-k+1,met,met%photj(i,j,k))
-   enddo
-   enddo
-   enddo
+    met%photj = 0.e0
+    do k=1,params%km
+    do j=1,params%jm
+    do i=1,params%im
+       call CO2_photolysis_rate(i,j,k, params%km-k+1, met, O3col(i,j,k),       CO2photj(i,j,k))
+       call CH4_photolysis_rate(i,j,k,                met, O2col(i,j,k), 94.0, CH4photj(i,j,k))
+    enddo
+    enddo
+    enddo
 
 ! ===============================================================
 
@@ -720,9 +724,9 @@ contains
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
-    call  CO_prodloss( CO, OH, O1D, Cl, CH4_total, CO2_total, RC )
-    call CO2_prodloss(                                        RC ) ! Currently nothing in here. Just in case... 
-    call CH4_prodloss( CH4, OH, O1D, Cl,                      RC )
+    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, RC )
+    call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
+    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
 
 !   -- surface fluxes for all instances
     call surface_prodloss( RC )
@@ -754,7 +758,7 @@ contains
        ! deallocate the prod/loss arrays for each instance
        nullify( instances(i)%p%prod, instances(i)%p%loss )
     enddo
-    deallocate(met%cosz, met%slr, met%o3col, met%photj, __STAT__ )
+    deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
     VERIFY_(status)
 
     RETURN_(ESMF_SUCCESS)

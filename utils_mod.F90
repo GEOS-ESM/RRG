@@ -2,8 +2,6 @@ module utils_mod
 
   use types_mod
 
-  use mapl
-
   implicit none
   public
 

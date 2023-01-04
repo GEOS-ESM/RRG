@@ -31,7 +31,7 @@ CONTAINS
   ! !INTERFACE:
   !
 
-  SUBROUTINE CO_prodloss( COinst, OH, O1D, Cl, CH4, CO2, RC )
+  SUBROUTINE CO_prodloss( COinst, OH, O1D, Cl, JV1, JV2, CH4, CO2, RC )
 
     !   !USES:
     use types_mod
@@ -47,6 +47,8 @@ CONTAINS
     real, pointer, intent(in)     ::  OH(:,:,:)
     real, pointer, intent(in)     :: O1D(:,:,:)
     real, pointer, intent(in)     ::  Cl(:,:,:)
+    real,          intent(in)     :: JV1(:,:,:)
+    real,          intent(in)     :: JV2(:,:,:)
     real, pointer, intent(in)     :: CH4(:,:,:)
     real, pointer, intent(in)     :: CO2(:,:,:)
 
@@ -126,15 +128,14 @@ CONTAINS
     prod = prod + k_*CH4*Cl
 
     !            CH4 + O1D -> CO + ...
-    k_ = 1.75e-10 ! 2nd orders
+    k_ = 1.75e-10 ! 2nd order
     prod = prod + k_*CH4*O1D
 
-    !            CH4 + hv -> 2H2O + CO
-    !            CO2 + hv -> CO + ???
-    !     1st order (1/s); don't need CVFAC
+    !            CO2 + hv -> CO + O3P
+    !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-    !prod = prod + met%photJ*CH4 <-- what to do about this? I don't think it's real <<>> MSL
-    prod = prod + met%photJ*CO2
+    prod = prod + JV1*CO2    ! 1st order (1/s)
+    prod = prod + JV2*CH4    ! 1st order (1/s)
 
     prod => null()
 

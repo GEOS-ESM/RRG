@@ -6,6 +6,7 @@
 /@env/
 /.mepo/
 *~
+\#*
 CO_GridComp
 bw
 sb

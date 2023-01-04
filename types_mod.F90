@@ -44,6 +44,7 @@ module types_mod
      real, pointer, dimension(:,:,:) :: qctot 
      real, pointer, dimension(:,:,:) :: qtot   ! Calculated locally. Not currently an available import.
 
+     ! Computed quantities
      real, allocatable               :: cosz(:,:), slr(:,:) ! insolation params
      real, allocatable               :: O3col(:,:,:)
      real, allocatable               :: photJ(:,:,:)

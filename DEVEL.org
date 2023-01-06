@@ -2,9 +2,8 @@
 Development notes:
 * TODO:
   Mass balance
-  CH4 photochem
 * Open Questions:
-** How to control if a species itself is active?
+** TODO How to control if a species itself is active?
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
 ** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
 * TODO Error control
@@ -25,7 +24,7 @@ Development notes:
    - fluxes 'in' can be added to a specific instance
    - fluxes 'out' have to be partitioned evenly over all instances
    MASKS!
-** IN-PROGRESS Chemistry
+** BETA Chemistry
    Chem prod goes into residual
    Chem loss depletes all instances
 *** BETA CO
@@ -60,7 +59,5 @@ Development notes:
 * TODO Finalize
 * TODO Features
 ** coupling to other components
-** using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
+** BETA using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
    currently relies on strings. String searches are wet blankets
-** BETA MASKS!
-/discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana

@@ -2,6 +2,8 @@ module types_mod
   implicit none
   public
   
+  integer, PARAMETER             :: MAXMASKS = 10
+
   type gas_instance
      real, pointer, DIMENSION(:,:,:) :: data3d ! Abundance
      real, pointer, dimension(:,:,:) :: prod, loss
@@ -11,7 +13,7 @@ module types_mod
      integer                         :: index
      integer                         :: ispecies
      logical                         :: hasMask = .false.
-     integer                         :: imask = -999
+     integer                         :: imask(MAXMASKS) = -999 ! Up to 10 masks can be superimposed
      integer, pointer                :: mask(:,:) => null()
      ! Sparse mask indices. For future use
      integer, pointer                :: mask_inonzero(:) => null() ! We want this to be saved

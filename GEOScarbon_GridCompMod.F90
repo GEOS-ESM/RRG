@@ -1184,21 +1184,23 @@ contains
 
     logical       :: tend, present, found
     character(32) :: name, string, lstr, species
-    integer       :: i, imask, ierr, loc1, loc2, ii, jj, n
+    integer       :: i, imask, ierr, loc1, loc2, ii, jj, n, nterms
     real          :: lat1,lat2,lon1,lon2,ltmp
     real, pointer :: ptr2d(:,:)
     __Iam__('ReadMasksTable')
 
+    RC    = 0 ! Assume success
+    
     species = trim(instance(1)%species)
 
     ! Read the table in config
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=present,rc=status )
     VERIFY_(status)
-    
-
-    RC    = 0 ! Assume success
-    
     if (.not. present) return
+    call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
+    VERIFY_(STATUS)
+    call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=present,rc=status )
+    VERIFY_(status)
 
     ! Set up the read loop
     tend  = .false.
@@ -1212,240 +1214,201 @@ contains
 
        call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=status )
        VERIFY_(status)
+ 
        if (tend) cycle
 
        ! Get instance name
        ! 1st field is the instance name associated with the mask
-!       n = ESMF_ConfigGetLen( cfg, rc=status ) ! TBD
+!       nterms = ESMF_ConfigGetLen( cfg, rc=status ) ! TBD
+       ! 1st entry is the associated instance
        call ESMF_ConfigGetAttribute ( cfg,value=name, default='',rc=status)
        if (name .ne. '') then ! If blank, cycle
-          ! The the import pair
-          call ESMF_ConfigGetAttribute ( cfg,value=string, default='',rc=status) ! 2nd field is the flux import name
-          if (string .ne. '') then
-             ! is it an integer or a lat/lon bound?
-             if (is_numeric(string) .and. index(string,',') .eq. 0) then ! Is a number and doesn't have commas?
-                ! If its a number, it better be an integer!
-                read(string,'(i10)',iostat=ierr) imask ! does string fit into a 10-digit integer?
-                if ( ierr .ne. 0 ) then
-                   ! not an integer
-                   write(*,'(a)') 'ReadMasksTable: Error reading mask named '//trim(name)//'. Expected an integer, got '//trim(string)//'. Exiting'
-                   RC = -1
-                   return
+          ! Loop over entries
+          do n=2,nterms
+             ! 1) Get term
+             call ESMF_ConfigGetAttribute ( cfg,value=string,rc=status)
+             if (string .eq. '') cycle
+
+             ! 2) Find instance and allocate mask
+             found = .false.
+             do i=1,size(instance)
+                if (trim(name) .eq. trim(instance(i)%name)) then
+                   found = .true.
+                   exit
+                   ! i is now the instance index
                 endif
-             else
-                ! if not, lets make sure it looks like a lat/lon bounding box, e.g. lat1,lat2,lon1,lon2
-                ! The following logic isn't perfect and doesn't (yet) account for a full suite of scenarios
-                
-                ! process lat1
-                loc1 = index(string(:),',') ! Find the 1st delimiter
-                if (loc1 .gt. 0) then
-                   read(string(1:loc1-1), *) lstr
-                   if (is_numeric(lstr)) then
-                      read(lstr,*) lat1
-                   else
-                      ! error
-                      write(*,*) 'ReadMasksTable: Error processing 1st latitude bound of mask '//trim(name)
-                      RC = -1
-                      return
-                   endif
-                else
-                   ! No delimters? Error!
-                endif
-                
-                ! process lat2
-                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 2nd delimiter
-                if (loc2 .gt. 0) then
-                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
-                   if (is_numeric(lstr)) then
-                      read(lstr,*) lat2
-                   else
-                      ! error
-                      write(*,*) 'ReadMasksTable: Error processing 2nd latitude bound of mask '//trim(name),trim(lstr)
-                      RC = -1
-                      return
-                   endif
-                   loc1 = loc2 ! stride forward
-                else
-                   ! No delimters? Error!
-                endif
-                
-                ! process lon1 & lon2 together
-                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 3rd delimiter
-                if (loc2 .gt. 0) then
-                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
-                   if (is_numeric(lstr)) then
-                      read(lstr,*) lon1
-                   else
-                      ! error
-                      write(*,*) 'ReadMasksTable: Error processing 1st longitude bound of mask '//trim(name),trim(lstr)
-                      RC = -1
-                      return
-                   endif
-                   read(string(loc2+1:),*) lstr ! Read last entry
-                   if (is_numeric(lstr)) then
-                      read(lstr,*) lon2
-                   else
-                      ! error
-                      write(*,*) 'ReadMasksTable: Error processing 2nd longitude bound of mask '//trim(name),trim(lstr)
-                      RC = -1
-                      return
-                   endif
-                   ! Fin
-                else
-                   ! No delimters? Error!
-                   write(*,*) 'ReadMasksTable: Mask setting for '//trim(name)//' is neither an integer nor a proper lat/lon box'
-                   RC = -1
-                   return
-                endif
-                ! If we got here, then we have successfully processed a lat/lon box
-             endif
-          else
-             write(*,*) 'ReadMaskTable: No settings specified for mask '//trim(name)
-             RC = -1
-             return
-          endif
-          ! If we got here, then we have successfully processed a mask
-          ! Register the mask
-          ! -- first find the instance name
-          found = .false.
-          do i=1,size(instance)
-             if (trim(name) .eq. trim(instance(i)%name)) then
-                found = .true.
-                exit
-             endif
-          enddo
-          if (.not. found) then
-             write(*,*) 'ReadMasksTable: not able to find instance '//trim(name)//' associated with '//trim(instance(1)%species)
-             RC = -1
-             return
-          endif
-          ! -- populate
-          instance(i)%hasmask = .true.
-          allocate(instance(i)%mask(params%im,params%jm),stat=status)
-          VERIFY_(status)
-          if (imask .ne. -999) then
-             ! If imask isn't -999, then associate with the import field
-             instance(i)%imask = imask
-           elseif (.not. any((/lat1,lat2,lon1,lon2/).eq.-999.9))then
-             ! else build a box from the lats/lons
-             ! This is primitively done
-             ! 1) convert box to radians
-             lat1 = lat1 * MAPL_PI/180.0
-             lat2 = lat2 * MAPL_PI/180.0
-             if (lon1 .lt. 0.) then
-                lon1 = (lon1 + 360.0) * MAPL_PI/180.0
-             else
-                lon1 = lon1 * MAPL_PI/180.0
-             endif
-             if (lon2 .lt. 0.) then
-                lon2 = (lon2 + 360.0) * MAPL_PI/180.0
-             else
-                lon2 = lon2 * MAPL_PI/180.0
-             endif
-             ! 2) Populate mask
-             instance(i)%mask = 0
-             do jj=1,params%jm
-                do ii=1,params%im
-                   if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
-                   if ( params%lats(ii,jj) .ge. lat1 .and. &
-                        params%lats(ii,jj) .le. lat2 .and. &
-                        params%lons(ii,jj) .ge. lon1 .and. &
-                        params%lons(ii,jj) .le. lon2 ) then
-                      instance(i)%mask(ii,jj) = 1
-                   endif
-                   else ! We straddle the prime meridian
-                   if ( params%lats(ii,jj) .ge. lat1 .and. &
-                        params%lats(ii,jj) .le. lat2 .and. &
-                        params%lons(ii,jj) .ge. lon1 .and. &
-                        params%lons(ii,jj)-2.*MAPL_PI .le. lon2 ) then
-                      instance(i)%mask(ii,jj) = 1
-                   endif
-                   endif
-                enddo
              enddo
-             write(*,'(a,4f14.5,i3)') '<<>> MASK: ', lat1,lat2,lon1,lon2,maxval(instance(i)%mask)
-          else
-             write(*,*) 'Error processing mask for '//trim(species)//'::'//trim(name) 
-             RC = -1
-             return
-          endif
+             if (.not. found) then
+                write(*,*) 'ReadMasksTable: not able to find instance '//trim(name)//' associated with '//trim(instance(1)%species)
+                RC = -1
+                return
+             endif
+             instance(i)%hasmask = .true.
+             if (.not. associated(instance(i)%mask)) then
+                ! Only do this if not already associated. Otherwise, we can't
+                ! superimpose additional masks. They'd get overwritten
+                allocate(instance(i)%mask(params%im,params%jm),stat=status)
+                VERIFY_(status)
+                instance(i)%mask = 0
+             endif
+
+             ! 3) Is entry an integer reference or a lat lon box?
+             if (index(string,',') .gt. 0) then
+                ! 4) Process entry
+                !    4b) If a lat/lon box
+                call process_latlonbox( string, status )
+             elseif (is_numeric(string)) then
+                !    4a) If an integer reference. Test for integer happens in process_imask()
+                call process_imask( instance(i), string, status )
+             endif
+             ! 5) Should be done. Dump info if needed
+          enddo
        else
-          cycle
+          cycle ! blank line. Continue
        endif
-!       write(*,*) '<<>> MASK: ', trim(name), imask, trim(string), lat1,lat2,lon1,lon2
     end do
 
     return
 
-    contains
-!>>      subroutine Process_LatLonBox( RC )
-!>>                ! process lat1
-!>>                loc1 = index(string(:),',') ! Find the 1st delimiter
-!>>                if (loc1 .gt. 0) then
-!>>                   read(string(1:loc1-1), *) lstr
-!>>                   if (is_numeric(lstr)) then
-!>>                      read(lstr,*) lat1
-!>>                   else
-!>>                      ! error
-!>>                      write(*,*) 'ReadMasksTable: Error processing 1st latitude bound of mask '//trim(name)
-!>>                      RC = -1
-!>>                      return
-!>>                   endif
-!>>                else
-!>>                   ! No delimters? Error!
-!>>                endif
-!>>                
-!>>                ! process lat2
-!>>                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 2nd delimiter
-!>>                if (loc2 .gt. 0) then
-!>>                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
-!>>                   if (is_numeric(lstr)) then
-!>>                      read(lstr,*) lat2
-!>>                   else
-!>>                      ! error
-!>>                      write(*,*) 'ReadMasksTable: Error processing 2nd latitude bound of mask '//trim(name),trim(lstr)
-!>>                      RC = -1
-!>>                      return
-!>>                   endif
-!>>                   loc1 = loc2 ! stride forward
-!>>                else
-!>>                   ! No delimters? Error!
-!>>                endif
-!>>                
-!>>                ! process lon1 & lon2 together
-!>>                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 3rd delimiter
-!>>                if (loc2 .gt. 0) then
-!>>                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
-!>>                   if (is_numeric(lstr)) then
-!>>                      read(lstr,*) lon1
-!>>                   else
-!>>                      ! error
-!>>                      write(*,*) 'ReadMasksTable: Error processing 1st longitude bound of mask '//trim(name),trim(lstr)
-!>>                      RC = -1
-!>>                      return
-!>>                   endif
-!>>                   read(string(loc2+1:),*) lstr ! Read last entry
-!>>                   if (is_numeric(lstr)) then
-!>>                      read(lstr,*) lon2
-!>>                   else
-!>>                      ! error
-!>>                      write(*,*) 'ReadMasksTable: Error processing 2nd longitude bound of mask '//trim(name),trim(lstr)
-!>>                      RC = -1
-!>>                      return
-!>>                   endif
-!>>                   ! Fin
-!>>                else
-!>>                   ! No delimters? Error!
-!>>                   write(*,*) 'ReadMasksTable: Mask setting for '//trim(name)//' is neither an integer nor a proper lat/lon box'
-!>>                   RC = -1
-!>>                   return
-!>>                endif
-!>>                ! If we got here, then we have successfully processed a lat/lon box
-!>>             endif
-!>>      end subroutine Process_LatLonBox
-!>>      
-!>>      subroutine Process_iMask( RC )
-!>>      end subroutine Process_iMask
+  contains
+    subroutine Process_LatLonBox( term, RC )
+
+      implicit none
+      
+      character(*), intent(in)  :: term
+      integer,      intent(out) :: RC
+
+      ! process lat1
+      loc1 = index(term(:),',') ! Find the 1st delimiter
+      if (loc1 .gt. 0) then
+         read(term(1:loc1-1), *) lstr
+         if (is_numeric(lstr)) then
+            read(lstr,*) lat1
+         else
+            ! error
+            write(*,*) 'ReadMasksTable: Error processing 1st latitude bound of mask '//trim(name)
+            RC = -1
+            return
+         endif
+      else
+         ! No delimters? Error!
+      endif
+
+      ! process lat2
+      loc2 = index(term(loc1+1:),',')+loc1 ! Find the 2nd delimiter
+      if (loc2 .gt. 0) then
+         read(term(loc1+1:loc2-1),*) lstr ! Read between the commas
+         if (is_numeric(lstr)) then
+            read(lstr,*) lat2
+         else
+            ! error
+            write(*,*) 'ReadMasksTable: Error processing 2nd latitude bound of mask '//trim(name),trim(lstr)
+            RC = -1
+            return
+         endif
+         loc1 = loc2 ! stride forward
+      else
+         ! No delimters? Error!
+      endif
+
+      ! process lon1 & lon2 together
+      loc2 = index(term(loc1+1:),',')+loc1 ! Find the 3rd delimiter
+      if (loc2 .gt. 0) then
+         read(term(loc1+1:loc2-1),*) lstr ! Read between the commas
+         if (is_numeric(lstr)) then
+            read(lstr,*) lon1
+         else
+            ! error
+            write(*,*) 'ReadMasksTable: Error processing 1st longitude bound of mask '//trim(name),trim(lstr)
+            RC = -1
+            return
+         endif
+         read(term(loc2+1:),*) lstr ! Read last entry
+         if (is_numeric(lstr)) then
+            read(lstr,*) lon2
+         else
+            ! error
+            write(*,*) 'ReadMasksTable: Error processing 2nd longitude bound of mask '//trim(name),trim(lstr)
+            RC = -1
+            return
+         endif
+         ! Fin
+      else
+         ! No delimters? Error!
+         write(*,*) 'ReadMasksTable: Mask setting for '//trim(name)//' is neither an integer nor a proper lat/lon box'
+         RC = -1
+         return
+      endif
+      ! If we got here, then we have successfully processed a lat/lon box
+
+      ! build a box from the lats/lons & superimpose on mask
+      ! This is primitively done
+      ! 1) convert box to radians
+      lat1 = lat1 * MAPL_PI/180.0
+      lat2 = lat2 * MAPL_PI/180.0
+      if (lon1 .lt. 0.) then
+         lon1 = (lon1 + 360.0) * MAPL_PI/180.0
+      else
+         lon1 = lon1 * MAPL_PI/180.0
+      endif
+      if (lon2 .lt. 0.) then
+         lon2 = (lon2 + 360.0) * MAPL_PI/180.0
+      else
+         lon2 = lon2 * MAPL_PI/180.0
+      endif
+      ! 2) Populate mask
+      do jj=1,params%jm
+         do ii=1,params%im
+            if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
+               if ( params%lats(ii,jj) .ge. lat1 .and. &
+                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lons(ii,jj) .ge. lon1 .and. &
+                    params%lons(ii,jj) .le. lon2 ) then
+                  instance(i)%mask(ii,jj) = 1
+               endif
+            else ! We straddle the prime meridian
+               if ( params%lats(ii,jj) .ge. lat1 .and. &
+                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lons(ii,jj) .ge. lon1 .and. &
+                    params%lons(ii,jj)-2.*MAPL_PI .le. lon2 ) then
+                  instance(i)%mask(ii,jj) = 1
+               endif
+            endif
+         enddo
+      enddo
+      write(*,'(a,4f14.5,i3)') '<<>> MASK: ', lat1,lat2,lon1,lon2,maxval(instance(i)%mask)
+
+    end subroutine Process_LatLonBox
+
+    subroutine Process_iMask( instance_, term, RC )
+
+      implicit none
+
+      type(gas_instance), intent(inout) :: instance_
+      character(*),       intent(in)    :: term
+      integer,            intent(out)   :: RC
+
+      integer :: nmask
+
+      nmask = findloc( instance_%imask, -999, DIM=1 ) ! Find the 1st blank entry
+
+      ! Make sure we aren't over the number of masks
+      if (nmask .eq. 0) then ! Looks like imask(:) is all full
+         write(*,*) 'ReadMasksTable: Too many integer mask references. Increase MAXMASKS. Currently ',MAXMASKS
+         RC = -1
+         return
+      endif
+
+      ! If its a number, it better be an integer!
+      read(term,'(i10)',iostat=ierr) instance_%imask(nmask) ! term should write into an integer w/o error, otherwise, not an integer
+      if ( ierr .ne. 0 ) then
+         ! not an integer
+         write(*,'(a)') 'ReadMasksTable: Error reading mask named '//trim(instance_%name)//'. Expected an integer, got '//trim(term)//'. Exiting'
+         RC = -1
+         return
+      endif
+
+    end subroutine Process_iMask
 
   end subroutine ReadMasksTable
 
@@ -1455,7 +1418,7 @@ contains
     type (ESMF_State)           :: import     ! Import state
     integer, intent(out)        :: RC
 
-    integer                     :: i,j,nst
+    integer                     :: i,j,nst,n,nmasks
     real, pointer               :: Ptr2D(:,:)
     type(gas_instance), pointer :: instance
     character(32)               :: species
@@ -1464,14 +1427,19 @@ contains
 
     do nst=1,NINSTANCES
        instance => instances(nst)%p
-       if (instance%imask .ne. -999) then
+       ! Loop over number of masks
+       if (.not. instance%hasmask) cycle
+       nmasks = findloc(instance%imask, -999, DIM=1)
+       if (nmasks .eq. 0) nmasks = MAXMASKS ! This is because the imask vector is full (all .ne. -999)
+       do n=1,nmasks
+       if (instance%imask(n) .ne. -999) then
           species = instance%species
-          instance%mask = 0
           call MAPL_GetPointer(import, Ptr2D, trim(species)//'_GHG_regionMask', RC=RC)
           if (RC .ne. ESMF_SUCCESS) return
-          where (Ptr2D .eq. instance%imask) instance%mask = 1
+          where (Ptr2D .eq. instance%imask(n)) instance%mask = 1
           Ptr2D => null()
        endif
+       enddo
        instance => null()
     enddo
     

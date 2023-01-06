@@ -76,53 +76,48 @@ contains
     else
        SZARad = ACOS(met%cosz(i,j))
     endif
-
-    if (SZADeg < szaCutoff) return ! no need to proceed
-
     SZADeg = SZARad*180./MAPL_PI
+
+    if (SZADeg < szaCutoff) return ! no need to proceed, save the FLOPS
+
+    ! We've determined the sun is (sufficiently) up, proceed
+
     b = sqrt(0.50*r0/hbar)
-
     sinSZA = sin(SZARad)
-
     if (SZADeg <= 90.00) then
        zgrz = 1000.00
     else
        zgrz = sinSZA*(zp+r0)-r0
     end if
-
     sfaca = 0.00
 
    ! Chapman function calculation from ACDB 2-D model
    ! ------------------------------------------------
-    if (SZADeg < szaCutoff) then ! Daytime
-       if (SZADeg < 70.00) then
-          sfaca = 1.00/met%cosz(i,j)
-       else if (zgrz > 0.00) then
-          s = b*abs(met%cosz(i,j))
-          if (s <= 8.00) then
-             s = (d1+d2*s)/(d3+d4*s+s**2)
-          else
-             s = d5/(d6+s)
-          end if
-          r = b*sqrt(MAPL_PI)
-          sfaca = r*s
-          if (SZADeg > 90.00) then
-             sfaca = 2.00*r*exp((r0+zbar)*(1.00-sinSZA)/hbar)-sfaca
-          end if
+    if (SZADeg < 70.00) then
+       sfaca = 1.00/met%cosz(i,j)
+    else if (zgrz > 0.00) then
+       s = b*abs(met%cosz(i,j))
+       if (s <= 8.00) then
+          s = (d1+d2*s)/(d3+d4*s+s**2)
+       else
+          s = d5/(d6+s)
        end if
-    end if ! Daytime
-
-   ! At each layer, compute the rate constant, J [s^{-1}], if the sun is up
+       r = b*sqrt(MAPL_PI)
+       sfaca = r*s
+       if (SZADeg > 90.00) then
+          sfaca = 2.00*r*exp((r0+zbar)*(1.00-sinSZA)/hbar)-sfaca
+       end if
+    end if
+       
+   ! Compute the rate constant, J [s^{-1}]
    ! ----------------------------------------------------------------------
 
-    if(SZADeg < szaCutoff) then
-       arg = O2Col*O2xs*sfaca
-       JV = sflux*exp(-arg)*CH4xs
-    end if
+    arg = O2Col*O2xs*sfaca
+    JV = sflux*exp(-arg)*CH4xs
 
  end subroutine CH4_photolysis_rate
 
-  SUBROUTINE CO2_photolysis_rate(i,j,k,km,met,o3col,aj)
+  SUBROUTINE CO2_photolysis_rate(i,j,k,ki,met,o3col,aj)
 
     ! ---------------------------------------------------------------------------------
     ! NAME: was jcalc4
@@ -160,7 +155,7 @@ contains
     ! WARNING: Photolysis reaction rate numbers 38-42 are calculated in MESO_PHOT.
     ! ---------------------------------------------------------------------------------
     implicit none
-    integer,           intent(in)  :: i, j, k, km
+    integer,           intent(in)  :: i, j, k, ki
     type(meteorology), intent(in)  :: met
     real,              intent(in)  :: o3col
     real,              intent(out) :: aj
@@ -173,7 +168,7 @@ contains
 
     ! Interpolate radiative flux function values to model conditions
     ! --------------------------------------------------------------
-    CALL interp_s(km-k+1,acos(met%cosz(i,j)),o3col,s)
+    CALL interp_s(ki,acos(met%cosz(i,j)),o3col,s)
     indt = met%t(i,j,k)-148.5
     indt = MAX(1,indt)
     indt = MIN(indt,200)

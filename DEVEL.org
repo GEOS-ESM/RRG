@@ -63,3 +63,4 @@ Development notes:
 ** using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
    currently relies on strings. String searches are wet blankets
 ** BETA MASKS!
+/discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana

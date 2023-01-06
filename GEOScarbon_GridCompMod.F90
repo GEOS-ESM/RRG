@@ -397,7 +397,8 @@ contains
 !  Set entry points
 !  ------------------------
    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
-   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun, __RC__)
+   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun1, __RC__)
+   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun2, __RC__)
    
 !   Store internal state in GC
 !   --------------------------
@@ -552,10 +553,138 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: GridCompRun
+! !IROUTINE: GridCompRun1
 
 ! !INTERFACE:
-  subroutine GridCompRun (GC, import, export, clock, RC)
+  subroutine GridCompRun1 (GC, import, export, clock, RC)
+!   !USES:
+    use surface_mod
+    use global_mod
+    use integration_mod
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION: dC/dt = P - L
+!               P & L are computed for all species and integrated simultaneously
+
+!EOP
+!============================================================================
+!   !Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: mapl
+    type (ESMF_State)                 :: internal
+    type (ESMF_Grid)                  :: grid
+    type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
+
+    integer i,j,k,n
+
+    real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
+    logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
+
+    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
+    type(ESMF_Alarm)                :: ALARM
+
+   __Iam__('Run1')
+
+!*****************************************************************************
+!   Begin... 
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) //'::'// Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl, RUNALARM=ALARM, __RC__)
+
+! ===============================================================
+!              G E T  D A T A  P O I N T E R S
+!   Associate the met fields
+!   -----------------------------------
+    call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__) ! pblh
+    call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
+    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
+    call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
+
+! Get the instance data pointers
+    do i=1,NINSTANCES
+       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
+       allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
+       instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
+    enddo
+
+!   Get pointers to the aggregates/totals
+    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
+    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+
+    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
+    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+
+    call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
+    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+! ===============================================================
+
+! ===============================================================
+!                   P R O C E S S  M A S K S
+    if (first) then
+       call ProcessExtdataMasks( IMPORT, __RC__ ) 
+       first = .false.
+    endif
+
+! ===============================================================
+!                R U N  T H E  O P E R A T I O N S
+!   Aggregate instances into the totals prior to operations
+    call util_aggregate( RC )
+
+!   Fill pointers for surface fluxes
+    if (associated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
+
+!   -- surface fluxes for all instances
+    call surface_prodloss( RC )
+
+!   -- integration
+    call integrate_forwardeuler( RC )
+
+!   -- post processing
+    if (cntrl%strictMassBalance) call util_accumulatenegatives( RC )
+
+!   Aggregate instances into the totals after operations
+    call util_aggregate( RC )
+! ===============================================================
+
+! ===============================================================
+!      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+! ===============================================================
+
+! ===============================================================
+!                            D O N E
+!   Cleanup
+    do i=1,NINSTANCES
+       ! deallocate the prod/loss arrays for each instance
+       nullify( instances(i)%p%prod, instances(i)%p%loss )
+    enddo
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine GridCompRun1
+
+!============================================================================
+!BOP
+! !IROUTINE: GridCompRun2
+
+! !INTERFACE:
+  subroutine GridCompRun2 (GC, import, export, clock, RC)
 !   !USES:
     use surface_mod
     use global_mod
@@ -638,16 +767,10 @@ contains
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
 !   -----------------------------------
-    call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__) ! pblh
-    call MAPL_GetPointer(import,met%ps,   'PS',   __RC__) ! ps
-    call MAPL_GetPointer(import,met%u10m, 'U10M', __RC__) ! u10
-    call MAPL_GetPointer(import,met%v10m, 'V10M', __RC__) ! v10
-    call MAPL_GetPointer(import,met%T,    'T',    __RC__) ! T
-    call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
-    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
-    call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
-    call MAPL_GetPointer(import,met%qctot,'QCTOT',__RC__) ! qtot
-    call MAPL_GetPointer(import,met%rho,'AIRDENS',__RC__) ! rho
+    call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__)
+    call MAPL_GetPointer(import,met%T,    'T',    __RC__)
+    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__)
+    call MAPL_GetPointer(import,met%delp, 'DELP', __RC__)
     CALL MAPL_GetPointer(import,     O3,    'O3', __RC__)
     CALL MAPL_GetPointer(import,     OH,    'OH', __RC__)
     CALL MAPL_GetPointer(import,     Cl,    'Cl', __RC__)
@@ -675,13 +798,6 @@ contains
     call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
     aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
 ! ===============================================================
-
-! ===============================================================
-!                   P R O C E S S  M A S K S
-    if (first) then
-       call ProcessExtdataMasks( IMPORT, __RC__ ) 
-       first = .false.
-    endif
 
 ! ===============================================================
 !                S E T  U P  P H O T O L Y S I S
@@ -718,18 +834,12 @@ contains
 !   Aggregate instances into the totals prior to operations
     call util_aggregate( RC )
 
-!   Fill pointers for surface fluxes
-    if (associated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
-
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
     call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, RC )
     call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
     call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
-
-!   -- surface fluxes for all instances
-    call surface_prodloss( RC )
 
 !   -- integration
     call integrate_forwardeuler( RC )
@@ -745,12 +855,6 @@ contains
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 ! ===============================================================
 
-    call MAPL_GetPointer( EXPORT, Ptr2D, 'namerica_mask', __RC__)
-    if (associated(Ptr2D)) then
-       Ptr2D = instances(iinstance('namerica'))%p%mask
-       Ptr2d => null()
-    endif
-    
 ! ===============================================================
 !                            D O N E
 !   Cleanup
@@ -763,7 +867,9 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine GridCompRun
+  end subroutine GridCompRun2
+
+!============================================================================
 
 !============================================================================
 
@@ -1078,7 +1184,7 @@ contains
 
     logical       :: tend, present, found
     character(32) :: name, string, lstr, species
-    integer       :: i, imask, ierr, loc1, loc2, ii, jj
+    integer       :: i, imask, ierr, loc1, loc2, ii, jj, n
     real          :: lat1,lat2,lon1,lon2,ltmp
     real, pointer :: ptr2d(:,:)
     __Iam__('ReadMasksTable')
@@ -1110,6 +1216,7 @@ contains
 
        ! Get instance name
        ! 1st field is the instance name associated with the mask
+!       n = ESMF_ConfigGetLen( cfg, rc=status ) ! TBD
        call ESMF_ConfigGetAttribute ( cfg,value=name, default='',rc=status)
        if (name .ne. '') then ! If blank, cycle
           ! The the import pair
@@ -1269,7 +1376,77 @@ contains
     end do
 
     return
-    
+
+    contains
+!>>      subroutine Process_LatLonBox( RC )
+!>>                ! process lat1
+!>>                loc1 = index(string(:),',') ! Find the 1st delimiter
+!>>                if (loc1 .gt. 0) then
+!>>                   read(string(1:loc1-1), *) lstr
+!>>                   if (is_numeric(lstr)) then
+!>>                      read(lstr,*) lat1
+!>>                   else
+!>>                      ! error
+!>>                      write(*,*) 'ReadMasksTable: Error processing 1st latitude bound of mask '//trim(name)
+!>>                      RC = -1
+!>>                      return
+!>>                   endif
+!>>                else
+!>>                   ! No delimters? Error!
+!>>                endif
+!>>                
+!>>                ! process lat2
+!>>                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 2nd delimiter
+!>>                if (loc2 .gt. 0) then
+!>>                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
+!>>                   if (is_numeric(lstr)) then
+!>>                      read(lstr,*) lat2
+!>>                   else
+!>>                      ! error
+!>>                      write(*,*) 'ReadMasksTable: Error processing 2nd latitude bound of mask '//trim(name),trim(lstr)
+!>>                      RC = -1
+!>>                      return
+!>>                   endif
+!>>                   loc1 = loc2 ! stride forward
+!>>                else
+!>>                   ! No delimters? Error!
+!>>                endif
+!>>                
+!>>                ! process lon1 & lon2 together
+!>>                loc2 = index(string(loc1+1:),',')+loc1 ! Find the 3rd delimiter
+!>>                if (loc2 .gt. 0) then
+!>>                   read(string(loc1+1:loc2-1),*) lstr ! Read between the commas
+!>>                   if (is_numeric(lstr)) then
+!>>                      read(lstr,*) lon1
+!>>                   else
+!>>                      ! error
+!>>                      write(*,*) 'ReadMasksTable: Error processing 1st longitude bound of mask '//trim(name),trim(lstr)
+!>>                      RC = -1
+!>>                      return
+!>>                   endif
+!>>                   read(string(loc2+1:),*) lstr ! Read last entry
+!>>                   if (is_numeric(lstr)) then
+!>>                      read(lstr,*) lon2
+!>>                   else
+!>>                      ! error
+!>>                      write(*,*) 'ReadMasksTable: Error processing 2nd longitude bound of mask '//trim(name),trim(lstr)
+!>>                      RC = -1
+!>>                      return
+!>>                   endif
+!>>                   ! Fin
+!>>                else
+!>>                   ! No delimters? Error!
+!>>                   write(*,*) 'ReadMasksTable: Mask setting for '//trim(name)//' is neither an integer nor a proper lat/lon box'
+!>>                   RC = -1
+!>>                   return
+!>>                endif
+!>>                ! If we got here, then we have successfully processed a lat/lon box
+!>>             endif
+!>>      end subroutine Process_LatLonBox
+!>>      
+!>>      subroutine Process_iMask( RC )
+!>>      end subroutine Process_iMask
+
   end subroutine ReadMasksTable
 
   subroutine ProcessExtdataMasks( import, RC ) 

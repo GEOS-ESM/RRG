@@ -1,0 +1,1 @@
+gfortran -g -fbacktrace -o simplebox _memutils.F90 types_mod.F90  global_mod.F90 utils_mod.F90 integration_mod.F90 surface_mod.F90 COchem_mod.F90 CO2chem_mod.F90 CH4chem_mod.F90 simplebox.F90

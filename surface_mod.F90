@@ -1,8 +1,6 @@
 MODULE Surface_Mod
 
 ! !USES:
-   use ESMF
-   use MAPL
    use types_mod
 
    implicit none
@@ -94,11 +92,13 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * &
+                        grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*&
+                           instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
                    enddo
                 endif
              enddo
@@ -117,11 +117,13 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  &
+                        met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*&
+                           instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                    enddo
                 endif
              enddo
@@ -165,11 +167,13 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * &
+                        grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*&
+                           instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
                    enddo
                 endif
              enddo
@@ -188,11 +192,13 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * &
+                        grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*&
+                           instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                    enddo
                 endif
              enddo

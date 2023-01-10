@@ -74,7 +74,7 @@ module utils_mod
       endif
 
       ! free the instance object
-      if (associated(instance)) deallocate(instance, stat=status)
+      if (associated(instance)) nullify(instance)
 
       ! reallocate the instance and increment
       n = n+1
@@ -131,7 +131,8 @@ module utils_mod
       endif
 
       ! cleanup: eliminate the temporary instance
-      deallocate(tmp, tind, stat=status)
+      if (associated(tmp)) nullify(tmp)
+      if (allocated(tind)) deallocate(tind, stat=status)
 
       ! now increment the total instances object
       ! -- set up the temporary object to store data

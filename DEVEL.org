@@ -1,5 +1,6 @@
 #+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
 Development notes:
+/discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana
 * TODO:
   Mass balance
 * Open Questions:

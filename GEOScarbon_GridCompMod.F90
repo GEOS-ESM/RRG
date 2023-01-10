@@ -767,19 +767,25 @@ contains
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
 !   -----------------------------------
-    call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__)
-    call MAPL_GetPointer(import,met%T,    'T',    __RC__)
-    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__)
-    call MAPL_GetPointer(import,met%delp, 'DELP', __RC__)
-    CALL MAPL_GetPointer(import,     O3,    'O3', __RC__)
-    CALL MAPL_GetPointer(import,     OH,    'OH', __RC__)
-    CALL MAPL_GetPointer(import,     Cl,    'Cl', __RC__)
-    CALL MAPL_GetPointer(import,    O1D,   'O1D', __RC__)
+    call MAPL_GetPointer(import,met%pblh,   'ZPBL', __RC__)
+    call MAPL_GetPointer(import,met%T,      'T',    __RC__)
+    call MAPL_GetPointer(import,met%ple,    'PLE',  __RC__)
+    call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
+    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
+    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+    CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
+    CALL MAPL_GetPointer(import,     OH,      'OH', __RC__)
+    CALL MAPL_GetPointer(import,     Cl,      'Cl', __RC__)
+    CALL MAPL_GetPointer(import,    O1D,     'O1D', __RC__)
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  O3col(params%im,params%jm,params%km), __STAT__)
     allocate(  O2col, CO2photj, CH4photj, mold=o3col, __STAT__)
+
+    allocate(  met%qtot, mold=met%q, __STAT__)
+
+    met%qtot = met%q + met%qctot
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -853,6 +859,12 @@ contains
 
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+
+    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/44.0)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
 ! ===============================================================
 
 ! ===============================================================
@@ -863,6 +875,7 @@ contains
        nullify( instances(i)%p%prod, instances(i)%p%loss )
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
+    deallocate(met%qtot, __STAT__)
     VERIFY_(status)
 
     RETURN_(ESMF_SUCCESS)
@@ -1376,7 +1389,6 @@ contains
             endif
          enddo
       enddo
-      write(*,'(a,4f14.5,i3)') '<<>> MASK: ', lat1,lat2,lon1,lon2,maxval(instance(i)%mask)
 
     end subroutine Process_LatLonBox
 

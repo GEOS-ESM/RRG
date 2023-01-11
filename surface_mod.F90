@@ -36,7 +36,7 @@ contains
 
     type(gas_instance), pointer :: inst
 
-    if (.not. associated(sfc_flux)) then ! no fluxes to compute.
+    if (.not. allocated(sfc_flux)) then ! no fluxes to compute.
        RC = 0
        return
     end if

@@ -8,7 +8,7 @@ module geos_SimplePhotolysisMod
   use types_mod
 
   implicit none
-  save
+!  save
 
   INTEGER       :: numphoto
   INTEGER       :: nxdo

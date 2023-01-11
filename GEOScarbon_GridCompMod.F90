@@ -220,7 +220,7 @@ contains
         long_name  ='Aggregate CO2 field', &
         units      ='kg kg-1',             &
         dims       =MAPL_DimsHorzVert,     &
-       vlocation  =MAPL_VlocationCenter,  &
+        vlocation  =MAPL_VlocationCenter,  &
         restart    =MAPL_RestartOptional,  &
         add2export =.true., & !<-- is this what makes it available for HISTORY?
         __RC__)
@@ -625,14 +625,15 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
-    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2_total',__RC__)
+    CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
-    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO_total' ,__RC__)
+    CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
-    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4_total',__RC__)
+    CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+
 ! ===============================================================
 
 ! ===============================================================
@@ -648,7 +649,7 @@ contains
     call util_aggregate( RC )
 
 !   Fill pointers for surface fluxes
-    if (associated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
+    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
 
 !   -- surface fluxes for all instances
     call surface_prodloss( RC )
@@ -670,11 +671,23 @@ contains
 ! ===============================================================
 !                            D O N E
 !   Cleanup
+!   Lots of memory leak potential here. Beware!
     do i=1,NINSTANCES
        ! deallocate the prod/loss arrays for each instance
-       nullify( instances(i)%p%prod, instances(i)%p%loss )
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
+       instances(i)%p%data3d => null()
     enddo
 
+    CO2_total => null(); CO_total => null(); CH4_total => null()
+    do i=1,nspecies
+       aggregate(i)%q => null()
+    enddo
+
+    if (allocated(sfc_flux)) then
+       do i=1,size(sfc_flux)
+          if (associated(sfc_flux(i)%flux)) sfc_flux(i)%flux => null()
+       enddo
+    endif
     RETURN_(ESMF_SUCCESS)
 
   end subroutine GridCompRun1
@@ -795,14 +808,15 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
-    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2_total',__RC__)
+    CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
-    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO_total' ,__RC__)
+    CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
-    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4_total',__RC__)
+    CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+
 ! ===============================================================
 
 ! ===============================================================
@@ -870,9 +884,15 @@ contains
 ! ===============================================================
 !                            D O N E
 !   Cleanup
+!   Lots of memory leak potential here. Beware!
     do i=1,NINSTANCES
        ! deallocate the prod/loss arrays for each instance
-       nullify( instances(i)%p%prod, instances(i)%p%loss )
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
+       instances(i)%p%data3d => null()
+    enddo
+    CO2_total => null(); CO_total => null(); CH4_total => null()
+    do i=1,nspecies
+       aggregate(i)%q => null()
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
     deallocate(met%qtot, __STAT__)
@@ -888,7 +908,7 @@ contains
 
   subroutine fillFluxes( import, sfc_flux, RC )
     type (ESMF_State),              intent(inout) :: import     ! Import state
-    type(surface_flux),    pointer, intent(inout) :: sfc_flux(:)
+    type(surface_flux),             intent(inout) :: sfc_flux(:)
     integer,                        intent(out)   :: RC
     
     integer :: i
@@ -1045,7 +1065,7 @@ contains
     tend  = .false.
     nlist = 0
     ! Make sure we can save the data already recorded in sfc_flux()
-    if (associated(sfc_flux)) then
+    if (allocated(sfc_flux)) then
        nelm = size(sfc_flux)
     else
        nelm = 0
@@ -1291,6 +1311,11 @@ contains
       character(*), intent(in)  :: term
       integer,      intent(out) :: RC
 
+      logical :: xsubgrid = .false.
+      logical :: ysubgrid = .false.
+
+      real    :: dlat,dlon
+
       ! process lat1
       loc1 = index(term(:),',') ! Find the 1st delimiter
       if (loc1 .gt. 0) then
@@ -1370,25 +1395,47 @@ contains
          lon2 = lon2 * MAPL_PI/180.0
       endif
       ! 2) Populate mask
-      do jj=1,params%jm
-         do ii=1,params%im
+      write(*,'(a,8f12.2)') 'TESTING MASK: ', lat1,lat2,lon1,lon2, minval(params%lats), maxval(params%lats), minval(params%lons), maxval(params%lons)
+      do jj=1,params%jm-1
+         do ii=1,params%im-1
             if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
                if ( params%lats(ii,jj) .ge. lat1 .and. &
-                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lats(ii,jj+1) .le. lat2 .and. &
                     params%lons(ii,jj) .ge. lon1 .and. &
-                    params%lons(ii,jj) .le. lon2 ) then
+                    params%lons(ii+1,jj) .le. lon2 ) then
                   instance(i)%mask(ii,jj) = 1
+                  write(*,'(a,4f12.2,a,i2,a,i2,a)') 'LAT/LON MASK: ', lat1,lat2,lon1,lon2,'(',ii,', ',jj,')'
                endif
             else ! We straddle the prime meridian
                if ( params%lats(ii,jj) .ge. lat1 .and. &
-                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lats(ii,jj+1) .le. lat2 .and. &
                     params%lons(ii,jj) .ge. lon1 .and. &
-                    params%lons(ii,jj)-2.*MAPL_PI .le. lon2 ) then
+                    params%lons(ii+1,jj)-2.*MAPL_PI .le. lon2 ) then
                   instance(i)%mask(ii,jj) = 1
                endif
             endif
          enddo
       enddo
+      ii = params%im
+      jj = params%jm
+      dlat = params%lats(ii,jj)-params%lats(ii,jj-1)
+      dlon = params%lons(ii,jj)-params%lons(ii,jj-1)
+      if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
+         if ( params%lats(ii,jj) .ge. lat1 .and. &
+              params%lats(ii,jj+1) .le. lat2 .and. &
+              params%lons(ii,jj) .ge. lon1 .and. &
+              params%lons(ii+1,jj) .le. lon2 ) then
+            instance(i)%mask(ii,jj) = 1
+            write(*,'(a,4f12.2,a,i2,a,i2,a)') 'LAT/LON MASK: ', lat1,lat2,lon1,lon2,'(',ii,', ',jj,')'
+         endif
+      else ! We straddle the prime meridian
+         if ( params%lats(ii,jj) .ge. lat1 .and. &
+              params%lats(ii,jj)+dlat .le. lat2 .and. &
+              params%lons(ii,jj) .ge. lon1 .and. &
+              (params%lons(ii,jj)-2.*MAPL_PI)+dlon .le. lon2 ) then
+            instance(i)%mask(ii,jj) = 1
+         endif
+      endif
 
     end subroutine Process_LatLonBox
 

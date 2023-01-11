@@ -179,7 +179,7 @@ module utils_mod
 
       status = 0
 
-      if (associated(sfc_flux)) then
+      if (allocated(sfc_flux)) then
          n = size(sfc_flux)+1
       else
          n = 1
@@ -193,7 +193,7 @@ module utils_mod
          tmp_flux = sfc_flux ! data storage
 
          ! sfc_flux 'should' be allocated here
-         if (associated(sfc_flux)) deallocate(sfc_flux, stat=status)
+         if (allocated(sfc_flux)) deallocate(sfc_flux, stat=status)
          if (status .ne. 0) return
          allocate(sfc_flux(n), stat=status)
          if (status .ne. 0) return
@@ -213,7 +213,7 @@ module utils_mod
          ! only need to add to sfc_flux()
 
          ! ... just in case
-         if (associated(sfc_flux)) deallocate(sfc_flux, stat=status)
+         if (allocated(sfc_flux)) deallocate(sfc_flux, stat=status)
          if (status .ne. 0) return
          allocate(sfc_flux(1), stat=status)
          if (status .ne. 0) return

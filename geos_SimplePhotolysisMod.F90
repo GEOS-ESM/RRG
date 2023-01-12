@@ -78,7 +78,8 @@ contains
     endif
     SZADeg = SZARad*180./MAPL_PI
 
-    if (SZADeg < szaCutoff) return ! no need to proceed, save the FLOPS
+!    write(*,*) '<<>> SZADeg: ', szadeg, szarad 
+    if (SZADeg >= szaCutoff) return ! no need to proceed, save the FLOPS
 
     ! We've determined the sun is (sufficiently) up, proceed
 

@@ -483,7 +483,7 @@ contains
 
 !   Set some quantities
 !   ------------------- 
-    params%AVO   = MAPL_AVOGAD
+    params%AVO   = MAPL_AVOGAD*1e-3 ! Why is AVO in mcl/kmol?
     params%AIRMW = MAPL_AIRMW
 
 !  Load resource file and get number of bins 
@@ -786,6 +786,7 @@ contains
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
     call MAPL_GetPointer(import,met%q,         'Q', __RC__)
     call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+    call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
     CALL MAPL_GetPointer(import,     OH,      'OH', __RC__)
     CALL MAPL_GetPointer(import,     Cl,      'Cl', __RC__)
@@ -827,13 +828,15 @@ contains
 
 !  Compute the O2 & O3 column
 !  ---------------------
-    r = 6.022e26*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = 6.022e23*(1e3 g/kg)
+    ! Below, I don't understand where '0.50' comes from (unless its for the average delp), and why a 1.e-4 factor is needed
+    ! to make O2col work. This was transferred from CH4_GridCompMod.F90 in GOCART. -- MSL
+    r = MAPL_AVOGAD*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = mcl/kmole
     m = MAPL_AIRMW/48.0e0  ! MW_air/MW_O3
     O3col(:,:,1) = 1.1e11       + m*O3(:,:,1)* met%delp(:,:,1)*r ! 1.1e11 = O3 above 80km (cm-2); O3 is mmr, we need vmr for this so MW conversion is done here
-    O2col(:,:,1) = 7.072926E+19 +   0.20946  * met%delp(:,:,1)*r ! 7.072926E+19 = O2 above 80 km (cm-2); O2VMR = 0.20946
+    O2col(:,:,1) = 7.072926E+19 +   0.20946  * met%delp(:,:,1)*r*1e-4 ! 7.072926E+19 = O2 above 80 km (cm-2); O2VMR = 0.20946
     DO k=2,params%km
        O3col(:,:,k) = O3col(:,:,k-1) + m*r*(O3(:,:,k-1)*met%delp(:,:,k-1) + O3(:,:,k)*met%delp(:,:,k))
-       O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))
+       O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
     
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
@@ -879,6 +882,31 @@ contains
        Ptr3d = (CO2_total*MAPL_AIRMW/44.0)/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CO2photj', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = CO2photj
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CH4photj', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = CH4photj
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'O3col', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = log10(O3col)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'O2col', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = log10(O2col)
+       Ptr3d => null()
+    endif
+
 ! ===============================================================
 
 ! ===============================================================

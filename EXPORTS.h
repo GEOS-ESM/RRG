@@ -13,3 +13,35 @@
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
 	__RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'CO2photj',                             &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'mol mol-1',                          &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+	__RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'CH4photj',                             &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'mol mol-1',                          &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+	__RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'O3col',                             &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'mol mol-1',                          &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+	__RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'O2col',                             &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'mol mol-1',                          &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+	__RC__)

@@ -6,7 +6,7 @@ module types_mod
 
   type gas_instance
      real, pointer, DIMENSION(:,:,:) :: data3d ! Abundance
-     real, pointer, dimension(:,:,:) :: prod, loss
+     real, allocatable, dimension(:,:,:) :: prod, loss
      real                            :: mw ! Molecular weight
      logical                         :: active = .true.  ! Assume active by default
      character(len=255)              :: name, species

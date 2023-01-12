@@ -105,7 +105,7 @@ CONTAINS
        !  --------------
        ! the following uses the midpoint level pressure derived from PLE
        do k=1,km
-          k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
+          k_(:,:,k) = 1.50E-13!*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
        enddo
        loss = loss + k_*CO*OH
        

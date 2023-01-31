@@ -94,9 +94,11 @@ CONTAINS
     !  CVFAC converts between units kg/kg <--> mcl/cm3
     !  --------------------------------------------------------
 
-    ! currently unused, since oxidants import as mcl/cm3 ... allocate(cvfac(im,jm,km),k_(im,jm,km), stat=RC)
-    ! currently unused, since oxidants import as mcl/cm3 ... cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
-    allocate(k_(im,jm,km), stat=RC)
+    allocate(k_(im,jm,km),    stat=RC)
+    allocate(cvfac(im,jm,km), stat=RC)
+    cvfac =  1e-3*met%rho*params%avo/params%airmw ! mol/mol <-> molec/cm3
+!    cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
+
     do nst = 1,size(COinst) ! cycle over instances
        loss  => COinst(nst)%loss(:,:,:) ! in kg/kg/s
        CO    => COinst(nst)%data3d(:,:,:) ! CO pointer makes the code cleaner
@@ -107,7 +109,7 @@ CONTAINS
        do k=1,km
           k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
        enddo
-       loss = loss + k_*CO*OH
+       loss = loss + k_*CO*OH*cvfac
        
        CO   => null()
        loss => null()
@@ -120,22 +122,23 @@ CONTAINS
     !  Production due to CH4 oxidation
     !  -------------------------------
     !            CH4 + OH -> CO + ... 
-    k_ = 2.45E-12*1.00E-06*exp(-1775./met%t) ! 2nd order
-    prod = prod + k_*CH4*OH 
+    k_ = 2.45e-12*exp(-1775./met%t) ! 2nd order
+    prod = prod + k_*CH4*OH*cvfac*28.0104/MAPL_AIRMW
 
     !            CH4 + Cl -> CO + ...
-    k_ = 7.10E-12*1.00E-06*exp(-1270./met%t) ! 2nd order
-    prod = prod + k_*CH4*Cl
+    k_ = 7.10e-12*exp(-1270./met%t) ! 2nd order
+    prod = prod + k_*CH4*Cl*cvfac*28.0104/MAPL_AIRMW
 
     !            CH4 + O1D -> CO + ...
     k_ = 1.75e-10 ! 2nd order
-    prod = prod + k_*CH4*O1D
+    prod = prod + k_*CH4*O1D*cvfac*28.0104/MAPL_AIRMW
 
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-    prod = prod + JV1*CO2    ! 1st order (1/s)
-    prod = prod + JV2*CH4    ! 1st order (1/s)
+!    prod = prod + JV1*607.76522e-6*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
+    prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
+    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
 
     prod => null()
 
@@ -143,36 +146,10 @@ CONTAINS
     ! by routine, Surface_ProdLoss(), and are not species
     ! specific. MSL
     ! -------------------------------------------------
-    
-
-    !<<>>!  Surface concentration [ppbv]
-    !<<>>!  ----------------------------
-    !<<>>   if (associated(CO_surface)) then
-    !<<>>      CO_surface(1:im,1:jm) = w_c%qa(nbeg)%data3d(1:im,1:jm,km)*1.e9
-    !<<>>   endif
-    !<<>>
-    !<<>>!  Column burden [kg m-2]
-    !<<>>!  ----------------------
-    !<<>>   if (associated(CO_column)) then
-    !<<>>      CO_column(1:im,1:jm) = 0.
-    !<<>>      do k = 1, km
-    !<<>>         CO_column(1:im,1:jm) = CO_column(1:im,1:jm)                                &
-    !<<>>                                + w_c%qa(nbeg)%data3d(1:im,1:jm,k)*mwtCO/MAPL_AIRMW * &
-    !<<>>                                             w_c%delp(1:im,1:jm,k)/MAPL_GRAV
-    !<<>>     enddo
-    !<<>>   endif
-    !<<>>
-    !<<>>!  Dry-air mole fraction
-    !<<>>!  ---------------------
-    !<<>>   if (associated(CO_dry)) then
-    !<<>>      CO_dry(1:im,1:jm,1:km) = w_c%qa(nbeg)%data3d(1:im,1:jm,1:km) &
-    !<<>>                                        / (1. - qtot(1:im,1:jm,1:km))
-    !<<>>   endif
-    !<<>>
-
+ 
     !  Housekeeping
     !  ------------
-    ! currently unused, since oxidants import as mcl/cm3 ... deallocate(cvfac, stat=RC)
+    deallocate(cvfac, stat=RC)
     deallocate(k_, stat=RC)
     RETURN
 

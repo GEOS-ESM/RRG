@@ -84,7 +84,7 @@ contains
              do j=1,params%jm
              do i=1,params%im
                 ! Source term?
-                if (sfc_flux(n)%flux(i,j) .gt. 0) then
+                if (sfc_flux(n)%flux(i,j) .gt. 0.e0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
                                                       sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
@@ -93,7 +93,7 @@ contains
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
-                if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
+                if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
                    fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
                    ! Loop over all instances
                    do nst=1,NINSTANCES
@@ -107,22 +107,25 @@ contains
              do j=1,params%jm
              do i=1,params%im
                 ! Source term?
-                if (sfc_flux(n)%flux(i,j) .gt. 0) then
+                if (sfc_flux(n)%flux(i,j) .gt. 0.e0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) +  &
-                                                      sfc_flux(n)%flux(i,j) * &
-                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
+                                        sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
-                if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
-                   ! Loop over all instances
-                   do nst=1,NINSTANCES
-                      if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-                   enddo
+                if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
+                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   if (inst%active) then
+                   ! Active instance? Loop over all instances in the aggregate
+                      do nst=1,NINSTANCES
+                         if (instances(nst)%p%ispecies .eq. spc) &
+                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                      enddo
+                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   endif
                 endif
              enddo
              enddo
@@ -166,11 +169,19 @@ contains
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
                    fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
-                   ! Loop over all instances
-                   do nst=1,NINSTANCES
-                      if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
-                   enddo
+                   if (inst%active) then
+                   ! Active instance? Loop over all instances in the aggregate
+                      do nst=1,NINSTANCES
+                         if (instances(nst)%p%ispecies .eq. spc) &
+                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                      enddo
+                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   endif
+!>>                   do nst=1,NINSTANCES
+!>>                      if (instances(nst)%p%ispecies .eq. spc) &
+!>>                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
+!>>                   enddo
                 endif
              enddo
              enddo
@@ -189,11 +200,20 @@ contains
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
                    fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
-                   ! Loop over all instances
-                   do nst=1,NINSTANCES
-                      if (instances(nst)%p%ispecies .eq. spc) &
-                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-                   enddo
+                   if (inst%active) then
+                   ! Active instance? Loop over all instances in the aggregate
+                      do nst=1,NINSTANCES
+                         if (instances(nst)%p%ispecies .eq. spc) &
+                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                      enddo
+                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   endif
+!>>                   ! Loop over all instances
+!>>                   do nst=1,NINSTANCES
+!>>                      if (instances(nst)%p%ispecies .eq. spc) &
+!>>                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+!>>                   enddo
                 endif
              enddo
              enddo
@@ -357,6 +377,8 @@ contains
   real, pointer :: lats(:,:)
   integer    :: nhms
   real       :: cdt
+
+  real       :: lat, lon ! local lat & lon in degrees
   
   im   = params%im
   jm   = params%jm
@@ -400,10 +422,13 @@ contains
   do j = 1,jm
      do i = 1,im
 
+        lat = params%lats(i,j)*params%radtodeg
+        lon = params%lons(i,j)*params%radtodeg
+
 !            Find corresponding index in hardwired diurnal cycle
 !            240 = 24 * 60 * 60 secs / 360 deg
 !            ---------------------------------------------------
-        secs_local = secs + 240. * params%lons(i,j)
+        secs_local = secs + 240. * lon
         k = 1 + mod(nint(secs_local/DT),N)
         if ( k < 1 ) k = N + k
 
@@ -412,10 +437,10 @@ contains
         aBoreal = Boreal(k) / fBoreal
         aNonBoreal = NonBoreal(k) / fNonBoreal
         
-        if ( params%lats(i,j) >= 50. ) then
+        if ( lat >= 50. ) then
            Fout(i,j) = aBoreal
-        else if ( params%lats(i,j) >= 30. ) then
-           alpha = (params%lats(i,j) - 30. ) / 20.
+        else if ( lat >= 30. ) then
+           alpha = (lat - 30. ) / 20.
            Fout(i,j) = (1-alpha) * aNonBoreal + &
                 alpha  * aBoreal
         else

@@ -14,7 +14,8 @@ module GEOScarbon_GridCompMod
    use global_mod
    use utils_mod
    use geos_simplephotolysismod
-   
+   use diagnostics
+
    implicit none
    private
 
@@ -98,6 +99,15 @@ contains
 ! using include is just so much cleaner
 #include "IMPORTS.h" 
 
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CO_CH4',             &
+       LONG_NAME  = 'source species',     &
+       UNITS      = '1',                  &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
+       __RC__ )
+
 ! ===============================================================
 !      S E T  U P  T H E  E X P O R T  S T A T E
 
@@ -129,7 +139,7 @@ contains
 
 ! Load instances    
     call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.,     nCO2, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(STATUS)
     call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.043,  nCH4, rc=status ); VERIFY_(STATUS)
     
 
@@ -190,6 +200,7 @@ contains
 !    integer                              :: HDT         ! model     timestep (secs)
     integer                              :: i, n, dims(3)
     type (MAPL_VarSpec), pointer         :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
+    
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -203,11 +214,6 @@ contains
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-
-!   Get my internal private state
-!   -----------------------------
-!    call ESMF_UserCompGetInternalState(GC, 'GEOScarbon_GridComp', wrap, STATUS)
-!    VERIFY_(STATUS)
 
 !   Get dimensions
 !   ---------------
@@ -223,8 +229,10 @@ contains
 
 !   Set some quantities
 !   ------------------- 
-    params%AVO   = MAPL_AVOGAD*1e-3 ! Why is AVO in mcl/kmol?
-    params%AIRMW = MAPL_AIRMW
+    params%AVO      = MAPL_AVOGAD*1e-3 ! Why is AVO in mcl/kmol?
+    params%AIRMW    = MAPL_AIRMW
+    grav            = MAPL_GRAV
+    params%RadToDeg = 180./MAPL_PI
 
 !  Load resource file and get number of bins 
 !  -------------------------------------------
@@ -256,7 +264,7 @@ contains
     if (nCO2 .gt. 0) call ReadMasksTable( import, cfg, CO2, __RC__ )
     if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
 
-!    if (MAPL_am_I_root()) call util_dumpinstances()
+!DEBUG    if (MAPL_am_I_root()) call util_dumpinstances()
 
 !  Set physical parameters
 !  - Henry's Law constants. Only needed for GEOS
@@ -323,6 +331,9 @@ contains
 
     integer i,j,k,n
 
+    type(ESMF_Time)                   :: time
+    integer                           :: iyr, imm, idd, ihr, imn, isc
+
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
@@ -348,6 +359,17 @@ contains
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
     call MAPL_Get (mapl, RUNALARM=ALARM, __RC__)
 
+!   Get current time
+!   -----------------------------------
+    call ESMF_ClockGet(CLOCK,currTIME=TIME,rc=STATUS)
+    VERIFY_(STATUS)
+
+    call ESMF_TimeGet(TIME ,YY=IYR, MM=IMM, DD=IDD, H=IHR, M=IMN, S=ISC, rc=STATUS)
+    VERIFY_(STATUS)
+
+    call MAPL_PackTime(params%NYMD,IYR,IMM,IDD)
+    call MAPL_PackTime(params%NHMS,IHR,IMN,ISC)
+
 ! ===============================================================
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
@@ -356,6 +378,7 @@ contains
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
     call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
+    call MAPL_GetPointer(import,met%qtot, 'QTOT', __RC__)
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -407,6 +430,51 @@ contains
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 ! ===============================================================
+    
+    call MAPL_GetPointer( export, Ptr3d, 'CO2_ProdLoss', __RC__ )
+    if (associated(Ptr3d)) then
+       call diag_prodloss( CO2(:), Ptr3d, RC )
+       Ptr3d = Ptr3d * met%delp/grav ! Convert to kg/m2/s
+       Ptr3d => null()
+    endif
+
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO2', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CH4', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+
+    !
+    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+    
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
+!>>
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
 
 ! ===============================================================
 !                            D O N E
@@ -524,8 +592,9 @@ contains
     call MAPL_GetPointer(import,met%T,      'T',    __RC__)
     call MAPL_GetPointer(import,met%ple,    'PLE',  __RC__)
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
-    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
-    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+!    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
+!    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
     CALL MAPL_GetPointer(import,     OH,      'OH', __RC__)
@@ -536,10 +605,6 @@ contains
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  O3col(params%im,params%jm,params%km), __STAT__)
     allocate(  O2col, CO2photj, CH4photj, mold=o3col, __STAT__)
-
-    allocate(  met%qtot, mold=met%q, __STAT__)
-
-    met%qtot = met%q + met%qctot
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -579,7 +644,9 @@ contains
        O3col(:,:,k) = O3col(:,:,k-1) + m*r*(O3(:,:,k-1)*met%delp(:,:,k-1) + O3(:,:,k)*met%delp(:,:,k))
        O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
-    
+   
+    O3col = 0e0 !<<>>
+ 
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
     do k=1,params%km
@@ -598,14 +665,16 @@ contains
 !   Aggregate instances into the totals prior to operations
     call util_aggregate( RC )
 
-    CO2photj = 0.e0
-
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
+
+!>>    call MAPL_GetPointer(import, Ptr3d, 'CO_CH4',__RC__)
+!>>    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, Ptr3d, CO2_total, RC )
+!>>    Ptr3d => null()
     call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, RC )
-    call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
-    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
+!    call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
+!    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
 
 !   -- integration
     call integrate_forwardeuler( RC )
@@ -620,9 +689,21 @@ contains
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 
-    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+!    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+!    if (associated(Ptr3d)) then
+!       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+!       Ptr3d => null()
+!    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total*MAPL_AIRMW/44.0)/(1.e0 - met%qtot)
+       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
@@ -666,8 +747,6 @@ contains
        aggregate(i)%q => null()
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
-    deallocate(met%qtot, __STAT__)
-    VERIFY_(status)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -873,7 +952,7 @@ contains
 
     __Iam__('RegisterInstanceWithMAPL')
 
-    friendlies = 'DYNAMICS:TURBULENCE:MOIST'
+    friendlies = ''!DYNAMICS:TURBULENCE:MOIST'
 
     ! Toggle whether or not to advect/mix/convect
     if (present(DTM)) then
@@ -946,7 +1025,7 @@ contains
 
     do while (.not.tend)
 
-!       scalefactor=1. ! Default to 1
+       scalefactor=1. ! Default to 1
 
        call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=RC )
        if (tend) cycle
@@ -1061,7 +1140,7 @@ contains
     
     if (MAPL_am_I_root()) then
        write(*,*) '<<>> GEOScarbon::'//trim(species)//' paired surface fluxes <<>>', nlist
-       do i=nelm+1,nlist
+       do i=nelm+1,nelm+nlist
           if (sfc_flux(i)%diurnal .and. sfc_flux(i)%pblmix) &
                write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing and diurnal scaling', sfc_flux(i)%scalefactor
           if (sfc_flux(i)%diurnal .and. .not. sfc_flux(i)%pblmix) &

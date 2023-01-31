@@ -24,10 +24,21 @@ Development notes:
    Surface/external fluxes have to be handled carefully
    - fluxes 'in' can be added to a specific instance
    - fluxes 'out' have to be partitioned evenly over all instances
-   MASKS!
+
+*** CO2
+    Good to go. Rounoff error differences
+*** CO
+    fPBL is difference between GOCART::CO and GHG. Impacts PBL mixing of biomass
+    emissions
+
 ** BETA Chemistry
    Chem prod goes into residual
    Chem loss depletes all instances
+
+*** CO
+   cvfac is different between GOCART and GHG calls. Due to differences in AIRDEN.
+   OH reaction is good otherwise.
+
 *** BETA CO
 *** BETA CH4
 *** BETA CO2
@@ -63,3 +74,12 @@ Development notes:
 ** DONE using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
    CLOSED: [2023-01-18 Wed 12:33]
    currently relies on strings. String searches are wet blankets
+
+* IN-PROGRESS Testing
+** IN-PROGRESS CO2
+   GOCART initializes in mol/mol. GHG initializes in kg/kg
+   This difference leads to differences order of 10 ppb at initialization (Jan20 2023)
+   MW_CO2 is set at 44.0098. MW air is 28.965
+
+   There is an issue with passive instances impacting the aggregates. Not sure what the cause is.
+   

@@ -153,7 +153,7 @@ module utils_mod
          do i=1,NINSTANCES
             instances(i) = atmp(i)
          enddo
-         
+
          ! -- cleanup
          deallocate(atmp, stat=status)
       endif

@@ -59,7 +59,7 @@ module types_mod
      character(len=255)              :: shortname
      character(len=255)              :: instance_pair
      integer                         :: index ! which gas_instance index is this flux associated with?
-     real                            :: scalefactor = 1. ! Default to 1.
+     real                            :: scalefactor = 1.e0 ! Default to 1.
   end type surface_flux
 
   type parameters
@@ -74,6 +74,7 @@ module types_mod
 !     integer                        :: minPBL ! Min k index for PBL
      real                           :: AVO
      real                           :: AIRMW
+     real                           :: RadToDeg ! Conversion factor
   end type parameters
   
   type toggles

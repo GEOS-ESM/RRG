@@ -1,8 +1,13 @@
 #+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
+UNITS! FIX UNITS!
 Development notes:
 /discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana
+CH4 emissions: Negative fluxes lead to different outcomes
 * TODO:
   Mass balance
+  Run with a species 'off'
+  water vapor feedback
+  CO2 feedback from CO oxidation
 * Open Questions:
 ** BETA How to control if a species itself is active?
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.

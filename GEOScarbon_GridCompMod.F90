@@ -388,13 +388,13 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2',__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
     if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' ,__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
     if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4',__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
     if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
 
 ! ===============================================================
@@ -458,12 +458,12 @@ contains
     endif
 
     !
-    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
-    if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
-       Ptr3d => null()
-    endif
-    
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
+!>>    
 !>>    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
 !>>    if (associated(Ptr3d)) then
 !>>       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
@@ -544,7 +544,7 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
+    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:)
     real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D 
     real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
@@ -554,7 +554,7 @@ contains
 
     real                            :: r, m
 
-   __Iam__('Run1')
+   __Iam__('Run2')
 
 !*****************************************************************************
 !   Begin... 
@@ -592,7 +592,7 @@ contains
     call MAPL_GetPointer(import,met%T,      'T',    __RC__)
     call MAPL_GetPointer(import,met%ple,    'PLE',  __RC__)
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
-!    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
+    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
 !    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
     call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
@@ -615,13 +615,13 @@ contains
 
 !   Get pointers to the aggregates/totals
 !   CO_total, CO2_total and CH4_total variables are made available for convenience.
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2',__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE.,__RC__)
     if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' ,__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE.,__RC__)
     if (associated(aggregate(ispecies('CO'))%q))  CO_total  => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4',__RC__)
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE.,__RC__)
     if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
 
 ! ===============================================================
@@ -645,8 +645,6 @@ contains
        O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
    
-    O3col = 0e0 !<<>>
- 
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
     do k=1,params%km
@@ -669,12 +667,45 @@ contains
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
 
-!>>    call MAPL_GetPointer(import, Ptr3d, 'CO_CH4',__RC__)
-!>>    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, Ptr3d, CO2_total, RC )
-!>>    Ptr3d => null()
-    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, RC )
-!    call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
-!    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
+!   This section allows species operations
+!   to use external sources for CO2 & CH4 in the 
+!   case where a user disables a species (e.g. declares no instances of CH4)
+
+!   At this point, local species (CO, CH4 & CO2) are kg/kg. If they are to be used
+!   for the chem ops, they get converted to mol/mol_dry and the back.
+    if (nCH4 .gt. 0) then
+       CH4ptr => CH4_total
+       CH4ptr = CH4ptr*params%AirMW/16.0422
+    else
+       call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
+    endif
+
+    if (nCO2 .gt. 0) then
+       CO2ptr => CO2_total
+       CO2ptr = CO2ptr*params%AirMW/44.0098
+    else
+       ! Need an external CO2 source. call MAPL_GetPointer(import, CO2ptr, 'CO_CH4',__RC__)
+    endif
+
+    if (nCO  .gt. 0) then
+       COptr  => CO_total
+       COptr  = COptr*params%AirMW/28.0104
+    else
+       ! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
+    endif
+
+    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr,       RC )
+    call CO2_prodloss( CO2, OH, COptr,                                             RC ) ! Currently nothing in here. Just in case... 
+    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
+
+    ! Convert back to kg/kg
+    if (nCH4 .gt. 0) CH4ptr = CH4ptr*16.0422/params%airmw 
+    if (nCO2 .gt. 0) CO2ptr = CO2ptr*44.0098/params%airmw 
+    if (nCO  .gt. 0)  COptr =  COptr*28.0104/params%airmw 
+
+    CH4ptr => null()
+    CO2ptr => null()
+    COptr  => null()
 
 !   -- integration
     call integrate_forwardeuler( RC )
@@ -689,15 +720,15 @@ contains
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 
-!    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
-!    if (associated(Ptr3d)) then
-!       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
-!       Ptr3d => null()
-!    endif
+    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+       Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
@@ -952,7 +983,7 @@ contains
 
     __Iam__('RegisterInstanceWithMAPL')
 
-    friendlies = ''!DYNAMICS:TURBULENCE:MOIST'
+    friendlies = 'DYNAMICS:TURBULENCE:MOIST'
 
     ! Toggle whether or not to advect/mix/convect
     if (present(DTM)) then

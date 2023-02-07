@@ -63,8 +63,6 @@ CONTAINS
     !EOP
     !-------------------------------------------------------------------------
 
-    real, pointer, dimension(:,:)   :: regionMask => null()
-
     INTEGER :: im, jm, km, nst, ios, idiag, iXj, ispc
     INTEGER :: i, j, k, n
 
@@ -123,22 +121,22 @@ CONTAINS
     !  -------------------------------
     !            CH4 + OH -> CO + ... 
     k_ = 2.45e-12*exp(-1775./met%t) ! 2nd order
-    prod = prod + k_*CH4*OH*cvfac*28.0104/MAPL_AIRMW
+    prod = prod + k_*CH4*OH*cvfac*28.0104/params%AirMW
 
     !            CH4 + Cl -> CO + ...
     k_ = 7.10e-12*exp(-1270./met%t) ! 2nd order
-    prod = prod + k_*CH4*Cl*cvfac*28.0104/MAPL_AIRMW
+    prod = prod + k_*CH4*Cl*cvfac*28.0104/params%AirMW
 
     !            CH4 + O1D -> CO + ...
     k_ = 1.75e-10 ! 2nd order
-    prod = prod + k_*CH4*O1D*cvfac*28.0104/MAPL_AIRMW
+    prod = prod + k_*CH4*O1D*cvfac*28.0104/params%AirMW
 
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
 !    prod = prod + JV1*607.76522e-6*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
     prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
-    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
+!    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
 
     prod => null()
 

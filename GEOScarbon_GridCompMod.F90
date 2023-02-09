@@ -14,15 +14,15 @@ module GEOScarbon_GridCompMod
    use global_mod
    use utils_mod
    use geos_simplephotolysismod
-   
+   use diagnostics
+
    implicit none
    private
 
    integer, parameter             :: DP=kind(1.0d0)
    integer                        :: status ! module-wide scope
 
-   ! These are module-specific declarations that have a general interface
-   ! with the gas module. Users can add new species to the system w/o
+   ! Users can add new species to the system w/o
    ! having to add new code other than here in the main interface module.
    integer, save                  :: nCH4, nCO2, nCO ! number of instances
    type(gas_instance), pointer    :: CO2(:) => null()
@@ -35,10 +35,16 @@ module GEOScarbon_GridCompMod
 ! !DESCRIPTION: This module implements the atmospheric component of the global
 !               carbon cycle within the NASA GEOS modeling system using MAPL/ESMF
 !
+!   For chem species C, the system simply solves dC/dt = P - L
+!   P (prod) and L (loss) are computed and the system is integrated.
+!   The only operator splitting is between surface fluxes and 3-D ops (chem). This
+!   is done with two run methods. GridCompRun1 does surface fluxes, and GridCompRun2
+!   does the chemistry.
+!
 ! NOTES:
 ! 1) TOTAL/AGGREGATE FIELDS: Totals of CO2, CO & CH4 are NOT independent instances.
 !    They are used for diagnostics and coupling with other modules (e.g. grid comps)
-!    But they are not directly modified by any process.   
+!    They are not directly modified by any process.
 !
 ! !REVISION HISTORY:
 ! 02Dec2022  M.S.Long   First pass
@@ -93,6 +99,15 @@ contains
 ! using include is just so much cleaner
 #include "IMPORTS.h" 
 
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CO_CH4',             &
+       LONG_NAME  = 'source species',     &
+       UNITS      = '1',                  &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
+       __RC__ )
+
 ! ===============================================================
 !      S E T  U P  T H E  E X P O R T  S T A T E
 
@@ -122,289 +137,24 @@ contains
        VERIFY_(STATUS) 
     endif
 
-!    Since this is all repeated for CO, CO2 & CH4, it could
-!  be built into a routine or two. Depends on how clean we want
-!  things
-
-!  Carbon monoxide (CO)
-!  CO: Parse resource file
-!  -------------------
-   n = ESMF_ConfigGetLen(cfg,label='CO_instances:',rc=status)
-   VERIFY_(STATUS)
-   nCO = n
-
-!  CO: define the total/aggregate field
-   call MAPL_AddInternalSpec(gc,           &
-        short_name ='CO_total',            &
-        long_name  ='Aggregate CO field',  &
-        units      ='kg kg-1',             &
-        dims       =MAPL_DimsHorzVert,     &
-        vlocation  =MAPL_VlocationCenter,  &
-        restart    =MAPL_RestartOptional,  &
-        add2export =.true., & !<-- is this what makes it available for HISTORY?
-        __RC__)
-
-!  CO: Create a region mask import
-   if (nCO .gt. 0) then
-   call MAPL_AddImportSpec(GC,                             &
-        SHORT_NAME = 'CO_GHG_regionMask',                      &
-        LONG_NAME  = '',                                   &
-        UNITS      = '',                                   &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-   endif
-
-!  CO: Get instances from RC file
-!  ----------------------------------
-   call ESMF_ConfigFindLabel(cfg,'CO_instances:',rc=status)
-   VERIFY_(STATUS)
-   do i = 1, n
-      call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-      VERIFY_(STATUS)
-      name = TRIM(name)
-      ! Register as tracer
-      call RegisterInstanceWithMAPL( GC, 'CO', trim(name), rc=status )
-      VERIFY_(STATUS)
-
-      ! Add new active instance (assume active)
-      call Util_AddInstance( CO, trim(name), 'CO', 28.0104, .true., status)
-      VERIFY_(STATUS)
-   end do
-
-! If there are CO instances, then define an active residual by default
-! ASSUMPTION: a species' residual is always the last instance 
-   if (nCO .gt. 0) then
-      call Util_AddInstance( CO, 'residual', 'CO', 28.0104, .true., status)
-      VERIFY_(STATUS)
-      call RegisterInstanceWithMAPL( GC, 'CO', 'residual', rc=status )
-      VERIFY_(STATUS)
-   endif
-
-!  CO: Get passive instances and toggle them
-   n = 0
-   call ESMF_ConfigFindLabel(cfg,label='CO_passive_instances:',isPresent=present,rc=status)
-   VERIFY_(STATUS)
-   if (present) then
-      n = ESMF_ConfigGetLen(cfg,label='CO_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      call ESMF_ConfigFindLabel(cfg,'CO_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      if (n .gt. 0) then
-         do i = 1, n
-            ! Get instance name
-            call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-            VERIFY_(STATUS)
-
-            found = .false.
-            do j=1,size(CO)
-            ! Search for name in list of instances
-               if (index(CO(j)%name,trim(name)) .gt. 0) then
-                  found = .true.
-                  CO(j)%active = .false.
-               endif
-            enddo
-            if (.not. found) then
-               if (MAPL_am_I_root()) write(*,*) 'GEOScarbon::CO passive instance entry not in list'
-               VERIFY_(-1)
-            endif
-
-         end do
-      endif
-   endif
-
-!  Carbon dioxide (CO2)
-!  CO2: define the total/aggregate field
-   call MAPL_AddInternalSpec(gc,           &
-        short_name ='CO2_total',           &
-        long_name  ='Aggregate CO2 field', &
-        units      ='kg kg-1',             &
-        dims       =MAPL_DimsHorzVert,     &
-       vlocation  =MAPL_VlocationCenter,  &
-        restart    =MAPL_RestartOptional,  &
-        add2export =.true., & !<-- is this what makes it available for HISTORY?
-        __RC__)
-
-!  CO2: Parse resource file
-!  -------------------
-   n = ESMF_ConfigGetLen(cfg,label='CO2_instances:',rc=status)
-   VERIFY_(STATUS)
-   nCO2 = n
-
-!  CO2: Create a region mask import
-   if (nCO2 .gt. 0) then
-   call MAPL_AddImportSpec(GC,                             &
-        SHORT_NAME = 'CO2_GHG_regionMask',                     &
-        LONG_NAME  = '',                                   &
-        UNITS      = '',                                   &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-   endif
-
-!  CO2: Get instances from RC file
-!  ----------------------------------
-   call ESMF_ConfigFindLabel(cfg,'CO2_instances:',rc=status)
-   VERIFY_(STATUS)
-   do i = 1, n
-      call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-      VERIFY_(STATUS)
-      name = TRIM(name)
-      ! Register as tracer
-      call RegisterInstanceWithMAPL( GC, 'CO2', trim(name), rc=status )
-      VERIFY_(STATUS)
-
-      ! Add new active instance
-      call Util_AddInstance( CO2, trim(name), 'CO2', 44.0, .true., status)
-      VERIFY_(STATUS)
-   end do
-! If there are CO2 instances, then define an active residual by default   
-! ASSUMPTION: a species' residual is always the last instance 
-   if (nCO2 .gt. 0) then
-      call Util_AddInstance( CO2, 'residual', 'CO2', 44.0, .true., status)
-      VERIFY_(STATUS)
-      call RegisterInstanceWithMAPL( GC, 'CO2', 'residual', rc=status )
-      VERIFY_(STATUS)
-   endif
-
-!  CO2: Get passive instances and toggle them
-   n = 0
-   call ESMF_ConfigFindLabel(cfg,label='CO2_passive_instances:',isPresent=present,rc=status)
-   VERIFY_(STATUS)
-   if (present) then
-      n = ESMF_ConfigGetLen(cfg,label='CO2_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      call ESMF_ConfigFindLabel(cfg,'CO2_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      if (n .gt. 0) then
-         do i = 1, n
-            ! Get instance name
-            call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-            VERIFY_(STATUS)
-
-            found = .false.
-            do j=1,size(CO2)
-            ! Search for name in list of instances
-               if (index(CO2(j)%name,trim(name)) .gt. 0) then
-                  found = .true.
-                  CO2(j)%active = .false.
-               endif
-            enddo
-            if (.not. found) then
-               write(*,*) 'ERROR: GEOScarbon: CO2 passive instance entry not in list'
-               VERIFY_(-1)
-            endif
-
-         end do
-      endif
-   endif
-
-!  Methane (CH4)
-!  CH4: define the total/aggregate field
-   call MAPL_AddInternalSpec(gc,           &
-        short_name ='CH4_total',           &
-        long_name  ='Aggregate CH4 field', &
-        units      ='kg kg-1',             &
-        dims       =MAPL_DimsHorzVert,     &
-        vlocation  =MAPL_VlocationCenter,  &
-        restart    =MAPL_RestartOptional,  &
-        add2export =.true., & !<-- is this what makes it available for HISTORY?
-        __RC__)
-
-!  CH4: Parse resource file
-!  -------------------
-   n = ESMF_ConfigGetLen(cfg,label='CH4_instances:',rc=status)
-   VERIFY_(STATUS)
-   nCH4 = n
-
-!  CH4: Create a region mask import
-   if (nCH4 .gt. 0) then
-   call MAPL_AddImportSpec(GC,                             &
-        SHORT_NAME = 'CH4_GHG_regionMask',                     &
-        LONG_NAME  = '',                                   &
-        UNITS      = '',                                   &
-        DIMS       = MAPL_DimsHorzOnly,                    &
-        VLOCATION  = MAPL_VLocationNone,                   &
-        RESTART    = MAPL_RestartSkip,   __RC__)
-   endif
-
-!  CH4: Get instances from RC file
-!  ----------------------------------
-   call ESMF_ConfigFindLabel(cfg,'CH4_instances:',rc=status)
-   VERIFY_(STATUS)
-   do i = 1, n
-      call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-      VERIFY_(STATUS)
-      name = TRIM(name)
-      ! Register as tracer
-      call RegisterInstanceWithMAPL( GC, 'CH4', trim(name), rc=status )
-      VERIFY_(STATUS)
-
-      ! Add new active instance
-      call Util_AddInstance( CH4, trim(name), 'CH4', 16.043, .true., status)
-      VERIFY_(STATUS)
-   end do
-! If there are CH4 instances, then define an active residual by default   
-! ASSUMPTION: a species' residual is always the last instance 
-   if (nCH4 .gt. 0) then
-      call Util_AddInstance( CH4, 'residual', 'CH4', 16.043, .true., status)
-      VERIFY_(STATUS)
-      call RegisterInstanceWithMAPL( GC, 'CH4', 'residual', rc=status )
-      VERIFY_(STATUS)
-   endif
-
-!  CH4: Get passive instances and toggle them
-   n = 0
-   call ESMF_ConfigFindLabel(cfg,label='CH4_passive_instances:',isPresent=present,rc=status)
-   VERIFY_(STATUS)
-   if (present) then
-      n = ESMF_ConfigGetLen(cfg,label='CH4_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      call ESMF_ConfigFindLabel(cfg,'CH4_passive_instances:',rc=status)
-      VERIFY_(STATUS)
-      if (n .gt. 0) then
-         do i = 1, n
-            ! Get instance name
-            call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-            VERIFY_(STATUS)
-
-            found = .false.
-            do j=1,size(CH4)
-            ! Search for name in list of instances
-               if (index(CH4(j)%name,trim(name)) .gt. 0) then
-                  found = .true.
-                  CH4(j)%active = .false.
-               endif
-            enddo
-            if (.not. found) then
-               if (MAPL_am_I_root()) write(*,*) 'GEOScarbon::CH4 passive instance entry not in list'
-               VERIFY_(-1)
-            endif
-         end do
-      endif
-   endif
+! Load instances    
+    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.043,  nCH4, rc=status ); VERIFY_(STATUS)
+    
 
 ! Fluxes
-   call RegisterFluxWithMAPL( GC, cfg, 'CO' , status )
-   VERIFY_(status)
-   call RegisterFluxWithMAPL( GC, cfg, 'CO2', status )
-   VERIFY_(status)
-   call RegisterFluxWithMAPL( GC, cfg, 'CH4', status )
-   VERIFY_(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CO' , status ); VERIFY_(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CO2', status ); VERIFY_(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CH4', status ); VERIFY_(status)
 
-! ===============================================================
-
-!  Set entry points
-!  ------------------------
-   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
-   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun1, __RC__)
-   call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun2, __RC__)
+!   Set entry points
+!   ------------------------
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun1,       __RC__)
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun2,       __RC__)
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_FINALIZE, Finalize,      __RC__)
    
-!   Store internal state in GC
-!   --------------------------
-!    call ESMF_UserCompSetInternalState ( GC, 'GEOScarbon_GridComp', wrap, STATUS )
-!    VERIFY_(STATUS)
-
 !   Set generic services
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
@@ -450,6 +200,7 @@ contains
 !    integer                              :: HDT         ! model     timestep (secs)
     integer                              :: i, n, dims(3)
     type (MAPL_VarSpec), pointer         :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
+    
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -463,11 +214,6 @@ contains
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-
-!   Get my internal private state
-!   -----------------------------
-!    call ESMF_UserCompGetInternalState(GC, 'GEOScarbon_GridComp', wrap, STATUS)
-!    VERIFY_(STATUS)
 
 !   Get dimensions
 !   ---------------
@@ -483,8 +229,10 @@ contains
 
 !   Set some quantities
 !   ------------------- 
-    params%AVO   = MAPL_AVOGAD
-    params%AIRMW = MAPL_AIRMW
+    params%AVO      = MAPL_AVOGAD*1e-3 ! Why is AVO in mcl/kmol?
+    params%AIRMW    = MAPL_AIRMW
+    grav            = MAPL_GRAV
+    params%RadToDeg = 180./MAPL_PI
 
 !  Load resource file and get number of bins 
 !  -------------------------------------------
@@ -512,11 +260,11 @@ contains
     if (nCH4 .gt. 0) call ReadFluxTable( import, internal, cfg, 'CH4', __RC__ )
 
 ! Masks
-   if (nCO  .gt. 0) call ReadMasksTable( import, cfg, CO , __RC__ )
-   if (nCO2 .gt. 0) call ReadMasksTable( import, cfg, CO2, __RC__ )
-   if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
+    if (nCO  .gt. 0) call ReadMasksTable( import, cfg, CO , __RC__ )
+    if (nCO2 .gt. 0) call ReadMasksTable( import, cfg, CO2, __RC__ )
+    if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
 
-!    if (MAPL_am_I_root()) call util_dumpinstances()
+!DEBUG    if (MAPL_am_I_root()) call util_dumpinstances()
 
 !  Set physical parameters
 !  - Henry's Law constants. Only needed for GEOS
@@ -583,6 +331,9 @@ contains
 
     integer i,j,k,n
 
+    type(ESMF_Time)                   :: time
+    integer                           :: iyr, imm, idd, ihr, imn, isc
+
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
@@ -608,6 +359,17 @@ contains
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
     call MAPL_Get (mapl, RUNALARM=ALARM, __RC__)
 
+!   Get current time
+!   -----------------------------------
+    call ESMF_ClockGet(CLOCK,currTIME=TIME,rc=STATUS)
+    VERIFY_(STATUS)
+
+    call ESMF_TimeGet(TIME ,YY=IYR, MM=IMM, DD=IDD, H=IHR, M=IMN, S=ISC, rc=STATUS)
+    VERIFY_(STATUS)
+
+    call MAPL_PackTime(params%NYMD,IYR,IMM,IDD)
+    call MAPL_PackTime(params%NHMS,IHR,IMN,ISC)
+
 ! ===============================================================
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
@@ -616,6 +378,7 @@ contains
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
     call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
+    call MAPL_GetPointer(import,met%qtot, 'QTOT', __RC__)
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -625,14 +388,15 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
-    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
-    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
-    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+
 ! ===============================================================
 
 ! ===============================================================
@@ -648,7 +412,7 @@ contains
     call util_aggregate( RC )
 
 !   Fill pointers for surface fluxes
-    if (associated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
+    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
 
 !   -- surface fluxes for all instances
     call surface_prodloss( RC )
@@ -666,15 +430,72 @@ contains
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 ! ===============================================================
+    
+    call MAPL_GetPointer( export, Ptr3d, 'CO2_ProdLoss', __RC__ )
+    if (associated(Ptr3d)) then
+       call diag_prodloss( CO2(:), Ptr3d, RC )
+       Ptr3d = Ptr3d * met%delp/grav ! Convert to kg/m2/s
+       Ptr3d => null()
+    endif
+
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO2', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CH4', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+
+    !
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
+!>>    
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
+!>>
+!>>    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+!>>    if (associated(Ptr3d)) then
+!>>       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+!>>       Ptr3d => null()
+!>>    endif
 
 ! ===============================================================
 !                            D O N E
 !   Cleanup
+!   Lots of memory leak potential here. Beware!
     do i=1,NINSTANCES
        ! deallocate the prod/loss arrays for each instance
-       nullify( instances(i)%p%prod, instances(i)%p%loss )
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
+       instances(i)%p%data3d => null()
     enddo
 
+    CO2_total => null(); CO_total => null(); CH4_total => null()
+    do i=1,nspecies
+       if (associated(aggregate(i)%q)) aggregate(i)%q => null()
+    enddo
+
+    if (allocated(sfc_flux)) then
+       do i=1,size(sfc_flux)
+          if (associated(sfc_flux(i)%flux)) sfc_flux(i)%flux => null()
+       enddo
+    endif
     RETURN_(ESMF_SUCCESS)
 
   end subroutine GridCompRun1
@@ -723,7 +544,7 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
+    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:)
     real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D 
     real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
@@ -733,7 +554,7 @@ contains
 
     real                            :: r, m
 
-   __Iam__('Run1')
+   __Iam__('Run2')
 
 !*****************************************************************************
 !   Begin... 
@@ -767,14 +588,18 @@ contains
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
 !   -----------------------------------
-    call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__)
-    call MAPL_GetPointer(import,met%T,    'T',    __RC__)
-    call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__)
-    call MAPL_GetPointer(import,met%delp, 'DELP', __RC__)
-    CALL MAPL_GetPointer(import,     O3,    'O3', __RC__)
-    CALL MAPL_GetPointer(import,     OH,    'OH', __RC__)
-    CALL MAPL_GetPointer(import,     Cl,    'Cl', __RC__)
-    CALL MAPL_GetPointer(import,    O1D,   'O1D', __RC__)
+    call MAPL_GetPointer(import,met%pblh,   'ZPBL', __RC__)
+    call MAPL_GetPointer(import,met%T,      'T',    __RC__)
+    call MAPL_GetPointer(import,met%ple,    'PLE',  __RC__)
+    call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
+    call MAPL_GetPointer(import,met%q,         'Q', __RC__)
+!    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
+    call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
+    CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
+    CALL MAPL_GetPointer(import,     OH,      'OH', __RC__)
+    CALL MAPL_GetPointer(import,     Cl,      'Cl', __RC__)
+    CALL MAPL_GetPointer(import,    O1D,     'O1D', __RC__)
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
@@ -789,14 +614,16 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, CO2_total, 'CO2_total',__RC__)
-    aggregate(ispecies('CO2'))%q => CO2_total ! Aggregate is used under the hood
+!   CO_total, CO2_total and CH4_total variables are made available for convenience.
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE.,__RC__)
+    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal,  CO_total,  'CO_total',__RC__) 
-    aggregate(ispecies('CO'))%q  => CO_total  ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE.,__RC__)
+    if (associated(aggregate(ispecies('CO'))%q))  CO_total  => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
 
-    call MAPL_GetPointer(internal, CH4_total, 'CH4_total',__RC__) 
-    aggregate(ispecies('CH4'))%q => CH4_total ! Aggregate is used under the hood
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE.,__RC__)
+    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+
 ! ===============================================================
 
 ! ===============================================================
@@ -807,15 +634,17 @@ contains
 
 !  Compute the O2 & O3 column
 !  ---------------------
-    r = 6.022e26*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = 6.022e23*(1e3 g/kg)
+    ! Below, I don't understand where '0.50' comes from (unless its for the average delp), and why a 1.e-4 factor is needed
+    ! to make O2col work. This was transferred from CH4_GridCompMod.F90 in GOCART. -- MSL
+    r = MAPL_AVOGAD*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = mcl/kmole
     m = MAPL_AIRMW/48.0e0  ! MW_air/MW_O3
     O3col(:,:,1) = 1.1e11       + m*O3(:,:,1)* met%delp(:,:,1)*r ! 1.1e11 = O3 above 80km (cm-2); O3 is mmr, we need vmr for this so MW conversion is done here
-    O2col(:,:,1) = 7.072926E+19 +   0.20946  * met%delp(:,:,1)*r ! 7.072926E+19 = O2 above 80 km (cm-2); O2VMR = 0.20946
+    O2col(:,:,1) = 7.072926E+19 +   0.20946  * met%delp(:,:,1)*r*1e-4 ! 7.072926E+19 = O2 above 80 km (cm-2); O2VMR = 0.20946
     DO k=2,params%km
        O3col(:,:,k) = O3col(:,:,k-1) + m*r*(O3(:,:,k-1)*met%delp(:,:,k-1) + O3(:,:,k)*met%delp(:,:,k))
-       O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))
+       O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
-    
+   
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
     do k=1,params%km
@@ -837,9 +666,46 @@ contains
 !   Compute prod/loss & integrate
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
-    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, RC )
-    call CO2_prodloss(                                                             RC ) ! Currently nothing in here. Just in case... 
+
+!   This section allows species operations
+!   to use external sources for CO2 & CH4 in the 
+!   case where a user disables a species (e.g. declares no instances of CH4)
+
+!   At this point, local species (CO, CH4 & CO2) are kg/kg. If they are to be used
+!   for the chem ops, they get converted to mol/mol_dry and the back.
+    if (nCH4 .gt. 0) then
+       CH4ptr => CH4_total
+       CH4ptr = CH4ptr*params%AirMW/16.0422
+    else
+       call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
+    endif
+
+    if (nCO2 .gt. 0) then
+       CO2ptr => CO2_total
+       CO2ptr = CO2ptr*params%AirMW/44.0098
+    else
+       ! Need an external CO2 source. call MAPL_GetPointer(import, CO2ptr, 'CO_CH4',__RC__)
+    endif
+
+    if (nCO  .gt. 0) then
+       COptr  => CO_total
+       COptr  = COptr*params%AirMW/28.0104
+    else
+       ! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
+    endif
+
+    call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr,       RC )
+    call CO2_prodloss( CO2, OH, COptr,                                             RC ) ! Currently nothing in here. Just in case... 
     call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
+
+    ! Convert back to kg/kg
+    if (nCH4 .gt. 0) CH4ptr = CH4ptr*16.0422/params%airmw 
+    if (nCO2 .gt. 0) CO2ptr = CO2ptr*44.0098/params%airmw 
+    if (nCO  .gt. 0)  COptr =  COptr*28.0104/params%airmw 
+
+    CH4ptr => null()
+    CO2ptr => null()
+    COptr  => null()
 
 !   -- integration
     call integrate_forwardeuler( RC )
@@ -853,17 +719,65 @@ contains
 
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+
+    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CO2photj', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = CO2photj
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CH4photj', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = CH4photj
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'O3col', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = log10(O3col)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'O2col', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = log10(O2col)
+       Ptr3d => null()
+    endif
+
 ! ===============================================================
 
 ! ===============================================================
 !                            D O N E
 !   Cleanup
+!   Lots of memory leak potential here. Beware!
     do i=1,NINSTANCES
        ! deallocate the prod/loss arrays for each instance
-       nullify( instances(i)%p%prod, instances(i)%p%loss )
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
+       instances(i)%p%data3d => null()
+    enddo
+    CO2_total => null(); CO_total => null(); CH4_total => null()
+    do i=1,nspecies
+       aggregate(i)%q => null()
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
-    VERIFY_(status)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -871,11 +785,113 @@ contains
 
 !============================================================================
 
+   subroutine Finalize ( GC, IMPORT, EXPORT, clock, RC )
+
+! !USES:
+
+  implicit NONE
+
+! !INPUT PARAMETERS:
+
+   type(ESMF_Clock),  intent(inout) :: clock      ! The clock
+
+! !OUTPUT PARAMETERS:
+
+   type(ESMF_GridComp), intent(inout) :: GC      ! Grid Component
+   type(ESMF_State),    intent(inout) :: IMPORT      ! Import State
+   type(ESMF_State),    intent(inout) :: EXPORT      ! Export State
+   integer,             intent(out)   :: RC          ! Error return code:
+                                                     !  0 - all is well
+                                                     !  1 - 
+
+! !DESCRIPTION: This is a simple ESMF wrapper.
+!
+! !REVISION HISTORY:
+!
+!  27Feb2005 da Silva  First crack.
+!  18Jan2023 M.Long - Adapted for GHG
+!
+!EOP
+!-------------------------------------------------------------------------
+
+
+!  ErrLog Variables
+!  ----------------
+   character(len=ESMF_MAXSTR)      :: IAm = 'Finalize_'
+   integer                         :: STATUS
+   character(len=ESMF_MAXSTR)      :: COMP_NAME
+
+   integer :: i
+
+!  Get my name and set-up traceback handle
+!  ---------------------------------------
+   call ESMF_GridCompGet( GC, NAME=COMP_NAME, RC=STATUS )
+   VERIFY_(STATUS)
+   Iam = trim(COMP_NAME) // '::' // 'Finalize_'
+
+   ! Instances
+   do i=1,size(CO)
+      if (associated(CO(i)%data3d)) deallocate(CO(i)%data3d)
+      if ( allocated(CO(i)%prod)  ) deallocate(CO(i)%prod)
+      if ( allocated(CO(i)%loss)  ) deallocate(CO(i)%loss)
+      if (associated(CO(i)%mask)  ) deallocate(CO(i)%mask)
+   enddo
+   if (associated(CO)) deallocate(CO)
+   do i=1,size(CO2)
+      if (associated(CO2(i)%data3d)) deallocate(CO2(i)%data3d)
+      if ( allocated(CO2(i)%prod)  ) deallocate(CO2(i)%prod)
+      if ( allocated(CO2(i)%loss)  ) deallocate(CO2(i)%loss)
+      if (associated(CO2(i)%mask)  ) deallocate(CO2(i)%mask)
+   enddo
+   if (associated(CO2)) deallocate(CO2)
+   do i=1,size(CH4)
+      if (associated(CH4(i)%data3d)) deallocate(CH4(i)%data3d)
+      if ( allocated(CH4(i)%prod)  ) deallocate(CH4(i)%prod)
+      if ( allocated(CH4(i)%loss)  ) deallocate(CH4(i)%loss)
+      if (associated(CH4(i)%mask)  ) deallocate(CH4(i)%mask)
+   enddo
+   if (associated(CH4)) deallocate(CH4)
+   do i=1,size(instances)
+      if (associated(instances(i)%p%data3d)) deallocate(instances(i)%p%data3d)
+      if ( allocated(instances(i)%p%prod)  ) deallocate(instances(i)%p%prod)
+      if ( allocated(instances(i)%p%loss)  ) deallocate(instances(i)%p%loss)
+      if (associated(instances(i)%p%mask)  ) deallocate(instances(i)%p%mask)
+   enddo
+   if (allocated(instances)) deallocate(instances)
+
+   ! Surface fluxes
+   do i=1,size(sfc_flux)
+      if (associated(sfc_flux(i)%flux)) deallocate(sfc_flux(i)%flux)
+   enddo
+   if (allocated(sfc_flux)) deallocate(sfc_flux)
+
+   ! Aggregates
+   do i=1,size(aggregate)
+      if (associated(aggregate(i)%q)) deallocate(aggregate(i)%q)
+   enddo
+   if (allocated(aggregate)) deallocate(aggregate)
+
+   ! Parameters
+   if (associated(params%lats)) deallocate(params%lats)
+   if (associated(params%lons)) deallocate(params%lons)
+   if (allocated(species)) deallocate(species)
+
+!  Finalize GEOS Generic
+!  ---------------------
+!ALT: do not deallocate "foreign objects"
+   call MAPL_GenericFinalize ( GC, IMPORT, EXPORT, CLOCK, __RC__ )
+
+   RETURN_(ESMF_SUCCESS)
+
+   end subroutine Finalize
+
+!============================================================================
+!      G E O S / M A P L / E S M F  S E R V I C E  R O U T I N E S
 !============================================================================
 
   subroutine fillFluxes( import, sfc_flux, RC )
     type (ESMF_State),              intent(inout) :: import     ! Import state
-    type(surface_flux),    pointer, intent(inout) :: sfc_flux(:)
+    type(surface_flux),             intent(inout) :: sfc_flux(:)
     integer,                        intent(out)   :: RC
     
     integer :: i
@@ -1032,7 +1048,7 @@ contains
     tend  = .false.
     nlist = 0
     ! Make sure we can save the data already recorded in sfc_flux()
-    if (associated(sfc_flux)) then
+    if (allocated(sfc_flux)) then
        nelm = size(sfc_flux)
     else
        nelm = 0
@@ -1040,7 +1056,7 @@ contains
 
     do while (.not.tend)
 
-!       scalefactor=1. ! Default to 1
+       scalefactor=1. ! Default to 1
 
        call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=RC )
        if (tend) cycle
@@ -1155,7 +1171,7 @@ contains
     
     if (MAPL_am_I_root()) then
        write(*,*) '<<>> GEOScarbon::'//trim(species)//' paired surface fluxes <<>>', nlist
-       do i=nelm+1,nlist
+       do i=nelm+1,nelm+nlist
           if (sfc_flux(i)%diurnal .and. sfc_flux(i)%pblmix) &
                write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing and diurnal scaling', sfc_flux(i)%scalefactor
           if (sfc_flux(i)%diurnal .and. .not. sfc_flux(i)%pblmix) &
@@ -1278,6 +1294,11 @@ contains
       character(*), intent(in)  :: term
       integer,      intent(out) :: RC
 
+      logical :: xsubgrid = .false.
+      logical :: ysubgrid = .false.
+
+      real    :: dlat,dlon
+
       ! process lat1
       loc1 = index(term(:),',') ! Find the 1st delimiter
       if (loc1 .gt. 0) then
@@ -1357,26 +1378,47 @@ contains
          lon2 = lon2 * MAPL_PI/180.0
       endif
       ! 2) Populate mask
-      do jj=1,params%jm
-         do ii=1,params%im
+      write(*,'(a,8f12.2)') 'TESTING MASK: ', lat1,lat2,lon1,lon2, minval(params%lats), maxval(params%lats), minval(params%lons), maxval(params%lons)
+      do jj=1,params%jm-1
+         do ii=1,params%im-1
             if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
                if ( params%lats(ii,jj) .ge. lat1 .and. &
-                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lats(ii,jj+1) .le. lat2 .and. &
                     params%lons(ii,jj) .ge. lon1 .and. &
-                    params%lons(ii,jj) .le. lon2 ) then
+                    params%lons(ii+1,jj) .le. lon2 ) then
                   instance(i)%mask(ii,jj) = 1
+                  write(*,'(a,4f12.2,a,i2,a,i2,a)') 'LAT/LON MASK: ', lat1,lat2,lon1,lon2,'(',ii,', ',jj,')'
                endif
             else ! We straddle the prime meridian
                if ( params%lats(ii,jj) .ge. lat1 .and. &
-                    params%lats(ii,jj) .le. lat2 .and. &
+                    params%lats(ii,jj+1) .le. lat2 .and. &
                     params%lons(ii,jj) .ge. lon1 .and. &
-                    params%lons(ii,jj)-2.*MAPL_PI .le. lon2 ) then
+                    params%lons(ii+1,jj)-2.*MAPL_PI .le. lon2 ) then
                   instance(i)%mask(ii,jj) = 1
                endif
             endif
          enddo
       enddo
-      write(*,'(a,4f14.5,i3)') '<<>> MASK: ', lat1,lat2,lon1,lon2,maxval(instance(i)%mask)
+      ii = params%im
+      jj = params%jm
+      dlat = params%lats(ii,jj)-params%lats(ii,jj-1)
+      dlon = params%lons(ii,jj)-params%lons(ii,jj-1)
+      if (lon2 .gt. lon1) then ! we don't straddle the prime meridian
+         if ( params%lats(ii,jj) .ge. lat1 .and. &
+              params%lats(ii,jj+1) .le. lat2 .and. &
+              params%lons(ii,jj) .ge. lon1 .and. &
+              params%lons(ii+1,jj) .le. lon2 ) then
+            instance(i)%mask(ii,jj) = 1
+            write(*,'(a,4f12.2,a,i2,a,i2,a)') 'LAT/LON MASK: ', lat1,lat2,lon1,lon2,'(',ii,', ',jj,')'
+         endif
+      else ! We straddle the prime meridian
+         if ( params%lats(ii,jj) .ge. lat1 .and. &
+              params%lats(ii,jj)+dlat .le. lat2 .and. &
+              params%lons(ii,jj) .ge. lon1 .and. &
+              (params%lons(ii,jj)-2.*MAPL_PI)+dlon .le. lon2 ) then
+            instance(i)%mask(ii,jj) = 1
+         endif
+      endif
 
     end subroutine Process_LatLonBox
 
@@ -1434,7 +1476,7 @@ contains
        do n=1,nmasks
        if (instance%imask(n) .ne. -999) then
           species = instance%species
-          call MAPL_GetPointer(import, Ptr2D, trim(species)//'_GHG_regionMask', RC=RC)
+          call MAPL_GetPointer(import, Ptr2D, trim(species)//'_regionMask', RC=RC)
           if (RC .ne. ESMF_SUCCESS) return
           where (Ptr2D .eq. instance%imask(n)) instance%mask = 1
           Ptr2D => null()
@@ -1445,5 +1487,109 @@ contains
     
   end subroutine ProcessExtdataMasks
 
-end module GEOScarbon_GridCompMod
+  subroutine ProcessInstances( GC, cfg, GI, species, MW, nInst, RC )
 
+    implicit none
+    type (ESMF_GridComp),        intent(inout) :: GC      ! gridded component
+    type (ESMF_Config),          intent(inout) :: cfg
+    type(gas_instance), pointer, intent(inout) :: GI(:)
+    character(*),                intent(in)    :: Species
+    real,                        intent(in)    :: MW
+    integer,                     intent(out)   :: nInst   ! Number of registered instances
+    integer,                     intent(out)   :: RC      ! return code
+
+    ! Local
+    integer           :: i,j,n
+    character(len=32) :: inst_name
+    logical           :: present, found
+
+    __Iam__('ProcessInstances')
+
+    RC = 0
+
+    nInst = ESMF_ConfigGetLen(cfg,label=trim(species)//'_instances:',rc=status)
+    VERIFY_(STATUS)
+
+    if (nInst .eq. 0) return
+
+    !  define the total/aggregate field
+    call MAPL_AddInternalSpec(gc,                           &
+         short_name =trim(species),                         &
+         long_name  ='Aggregate '//trim(species)//' field', &
+         units      ='kg kg-1',                             &
+         dims       =MAPL_DimsHorzVert,                     &
+         vlocation  =MAPL_VlocationCenter,                  &
+         restart    =MAPL_RestartOptional,                  &
+         add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
+         __RC__)
+
+    !  Create a region mask import
+    call MAPL_AddImportSpec(GC,                          &
+         SHORT_NAME = trim(species)//'_regionMask',      &
+         LONG_NAME  = '',                                &
+         UNITS      = '',                                &
+         DIMS       = MAPL_DimsHorzOnly,                 &
+         VLOCATION  = MAPL_VLocationNone,                &
+         RESTART    = MAPL_RestartSkip,   __RC__)
+
+    !  Get instances from RC file
+    !  ----------------------------------
+    call ESMF_ConfigFindLabel(cfg,trim(species)//'_instances:',rc=status)
+    VERIFY_(STATUS)
+    do i = 1, nInst
+       call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
+       VERIFY_(STATUS)
+       inst_name = TRIM(inst_name)
+       ! Register as tracer
+       call RegisterInstanceWithMAPL( GC, trim(species), trim(inst_name), rc=status )
+       VERIFY_(STATUS)
+
+       ! Add new active instance (assume active)
+       call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .true., status)
+       VERIFY_(STATUS)
+    end do
+
+    ! If there are instances, then define an active residual by default
+    ! ASSUMPTION: a species' residual is always the last instance 
+    call Util_AddInstance( GI, 'residual', trim(species), MW, .true., status)
+    VERIFY_(STATUS)
+    call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
+    VERIFY_(STATUS)
+
+    !  Get passive instances and toggle them
+    n = 0
+    call ESMF_ConfigFindLabel(cfg,label=trim(species)//'_passive_instances:',isPresent=present,rc=status)
+    VERIFY_(STATUS)
+    if (present) then
+       n = ESMF_ConfigGetLen(cfg,label=trim(species)//'_passive_instances:',rc=status)
+       VERIFY_(STATUS)
+       call ESMF_ConfigFindLabel(cfg,trim(species)//'_passive_instances:',rc=status)
+       VERIFY_(STATUS)
+       if (n .gt. 0) then
+          do i = 1, n
+             ! Get instance name
+             call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
+             VERIFY_(STATUS)
+
+             found = .false.
+             do j=1,size(GI)
+                ! Search for name in list of instances
+                if (index(GI(j)%name,trim(inst_name)) .gt. 0) then
+                   found = .true.
+                   GI(j)%active = .false.
+                endif
+             enddo
+             if (.not. found) then
+                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry not in list of instances'
+                VERIFY_(-1)
+             endif
+
+          end do
+       endif
+    endif
+
+    return
+
+  end subroutine ProcessInstances
+
+end module GEOScarbon_GridCompMod

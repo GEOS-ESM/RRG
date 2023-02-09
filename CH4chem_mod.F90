@@ -67,27 +67,31 @@ contains
     km = params%km
 
     !  Chemistry
-    !  ASSUMPTION: all species units are input kg/kg
     !  --------------------------------------------------------
     allocate(k_(im,jm,km), stat=RC)
+    allocate(cvfac(im,jm,km), stat=RC)
+    cvfac =  1e-3*met%rho*params%avo/params%airmw ! mol/mol <-> molec/cm3
+
     do nst = 1,size(CH4inst) ! cycle over instances
        loss  => CH4inst(nst)%loss(:,:,:) ! in kg/kg/s
        CH4    => CH4inst(nst)%data3d(:,:,:) ! CH4 pointer makes the code cleaner
 
        !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
        k_  = 2.45E-12*exp(-1775./met%T)
-       loss = loss + k_*CH4*OH
+       loss = loss + k_*CH4*OH*cvfac
 
        !  Loss rate [m^3 s^-1] for Cl + CH4 => CO + products
        k_  = 7.10E-12*exp(-1270./met%T)
-       loss = loss + k_*CH4*Cl
+       loss = loss + k_*CH4*Cl*cvfac
 
        !  Loss rate [m^3 s^-1] for O(1D) + CH4 => CO + products
        k_ = 1.75E-10
-       loss = loss + k_*CH4*O1D
+       loss = loss + k_*CH4*O1D*cvfac
 
        ! Loss rate from photolysis: CH4 + hv => ...
        loss = loss + JV*CH4
+
+!<<>> GET UNITS RIGHT FIRST!       met%Q = met%Q + 2.00*params%cdt*dCH4Phot(i1:i2,j1:j2,1:km)*MAPL_H2OMW/MAPL_AIRMW
 
        CH4  => null()
        loss => null()
@@ -95,6 +99,7 @@ contains
 
     !  Housekeeping
     !  ------------
+    deallocate(cvfac, stat=RC)
     deallocate(k_, stat=RC)
     return
 

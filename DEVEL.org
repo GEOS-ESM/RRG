@@ -1,9 +1,15 @@
 #+TODO: TODO IN-PROGRESS ISSUES BETA WAITING DONE
+UNITS! FIX UNITS!
 Development notes:
+/discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana
+CH4 emissions: Negative fluxes lead to different outcomes
 * TODO:
   Mass balance
+  Run with a species 'off'
+  water vapor feedback
+  CO2 feedback from CO oxidation
 * Open Questions:
-** TODO How to control if a species itself is active?
+** BETA How to control if a species itself is active?
    Don't want to make it 'implied', meaning that, for example, a user turns off CO by not including any instances.
 ** How to deal with interconnectivity in mixed species environments? e.g. CH4 on but CO & CO2 off.
 * TODO Error control
@@ -18,15 +24,26 @@ Development notes:
      What if name in passive list isn't an instance? Error out. %%%
      
 ** BETA Masks
-* IN-PROGRESS Run
+* BETA Run
 ** BETA Surface
    Surface/external fluxes have to be handled carefully
    - fluxes 'in' can be added to a specific instance
    - fluxes 'out' have to be partitioned evenly over all instances
-   MASKS!
+
+*** CO2
+    Good to go. Rounoff error differences
+*** CO
+    fPBL is difference between GOCART::CO and GHG. Impacts PBL mixing of biomass
+    emissions
+
 ** BETA Chemistry
    Chem prod goes into residual
    Chem loss depletes all instances
+
+*** CO
+   cvfac is different between GOCART and GHG calls. Due to differences in AIRDEN.
+   OH reaction is good otherwise.
+
 *** BETA CO
 *** BETA CH4
 *** BETA CO2
@@ -55,9 +72,19 @@ Development notes:
     CLOSED: [2022-12-29 Thu 22:51]
 
 ** What else?
-* TODO Diagnostics
-* TODO Finalize
+* IN-PROGRESS Diagnostics
+* BETA Finalize
 * TODO Features
 ** coupling to other components
-** BETA using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
+** DONE using integer indexing to connect instances to other elements (e.g. fluxes, diagnostics)
+   CLOSED: [2023-01-18 Wed 12:33]
    currently relies on strings. String searches are wet blankets
+
+* IN-PROGRESS Testing
+** IN-PROGRESS CO2
+   GOCART initializes in mol/mol. GHG initializes in kg/kg
+   This difference leads to differences order of 10 ppb at initialization (Jan20 2023)
+   MW_CO2 is set at 44.0098. MW air is 28.965
+
+   There is an issue with passive instances impacting the aggregates. Not sure what the cause is.
+   

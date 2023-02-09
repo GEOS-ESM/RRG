@@ -6,7 +6,7 @@ module types_mod
 
   type gas_instance
      real, pointer, DIMENSION(:,:,:) :: data3d ! Abundance
-     real, allocatable, dimension(:,:,:) :: prod, loss
+     real, allocatable               :: prod(:,:,:), loss(:,:,:)
      real                            :: mw ! Molecular weight
      logical                         :: active = .true.  ! Assume active by default
      character(len=255)              :: name, species
@@ -14,10 +14,10 @@ module types_mod
      integer                         :: ispecies
      logical                         :: hasMask = .false.
      integer                         :: imask(MAXMASKS) = -999 ! Up to 10 masks can be superimposed
-     integer, pointer                :: mask(:,:) => null()
+     integer, pointer                :: mask(:,:)! => null()
      ! Sparse mask indices. For future use
-     integer, pointer                :: mask_inonzero(:) => null() ! We want this to be saved
-     integer, pointer                :: mask_jnonzero(:) => null() ! We want this to be saved
+!     integer, pointer                :: mask_inonzero(:) => null() ! We want this to be saved
+!     integer, pointer                :: mask_jnonzero(:) => null() ! We want this to be saved
   end type gas_instance
 
   type inst_
@@ -59,7 +59,7 @@ module types_mod
      character(len=255)              :: shortname
      character(len=255)              :: instance_pair
      integer                         :: index ! which gas_instance index is this flux associated with?
-     real                            :: scalefactor = 1. ! Default to 1.
+     real                            :: scalefactor = 1.e0 ! Default to 1.
   end type surface_flux
 
   type parameters
@@ -74,6 +74,7 @@ module types_mod
 !     integer                        :: minPBL ! Min k index for PBL
      real                           :: AVO
      real                           :: AIRMW
+     real                           :: RadToDeg ! Conversion factor
   end type parameters
   
   type toggles

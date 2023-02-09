@@ -8,14 +8,13 @@ module global_mod
   
 !  implicit none
   public 
-  save
 
   type(inst_),       allocatable :: instances(:)          ! A repository for all instances
   integer                        :: NINSTANCES = 0        ! size of instances(:); initialized to zero
   type(aggr),        allocatable :: aggregate(:)          ! Totals of all instances of a given species. The index is species index
 
   type(meteorology)              :: met
-  type(surface_flux),    pointer :: sfc_flux(:)
+  type(surface_flux),allocatable :: sfc_flux(:)
   type(parameters),      target  :: params
 
   type(toggles)                  :: cntrl

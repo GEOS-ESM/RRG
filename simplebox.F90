@@ -41,7 +41,7 @@ program simplebox
 
   real, pointer, dimension(:,:,:) :: testdata ! test data
 
-  real, target, allocatable, dimension(:,:,:) :: CO2total, COtotal, CH4total, OH, O1D, Cl, CO2photj, CH4photj, t, ple
+  real, target, allocatable, dimension(:,:,:) :: CO2total, COtotal, CH4total, OH, O1D, Cl, CO2photj, CH4photj, t, ple, rho
 
   integer                         :: timestep, nsteps
 
@@ -72,7 +72,7 @@ program simplebox
   params%AVO   = 6.022E23
   params%AIRMW = 28.97e0
 
-  nsteps = 10
+  nsteps = 100
 
   !  call util_dumpinstances()
 
@@ -80,14 +80,15 @@ program simplebox
 
   allocate(testdata(params%im,params%jm,params%km))
   allocate(CO2total,COtotal,CH4total, mold=testdata)
-  allocate(OH, O1D, Cl, CO2photj, CH4photj, t, mold=testdata)
+  allocate(OH, O1D, Cl, CO2photj, CH4photj, t, rho, mold=testdata)
 
   OH  = 1e6
   O1D = 1e4
   Cl  = 1e6
 
-  t = 298.
-  
+  t   = 298.
+  rho = 1.225
+
   CO2photj = 0.
   CH4photj = 0.
 
@@ -96,8 +97,9 @@ program simplebox
   CH4total = 0.
   testdata = 100.
 
-  met%t => t
-  
+  met%t   => t
+  met%rho => rho
+
   do timestep=1,nsteps
      call M_memused( memtotal, memused, percent_used, status)
      write(*,*) 'Mem total:', memtotal, ' Mem used: ', memused, ' % used: ', percent_used
@@ -194,7 +196,7 @@ program simplebox
      !   -- each species' chemistry
      !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
      call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4_total, CO2_total, status )
-     call CO2_prodloss(                                                             status ) ! Currently nothing in here. Just in case... 
+     call CO2_prodloss( CO2, OH, COtotal,                                           status ) ! Currently nothing in here. Just in case... 
      call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 status )
 
      !   -- integration

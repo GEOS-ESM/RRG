@@ -5,6 +5,7 @@ set (srcs
     CH4chem_mod.F90
     COchem_mod.F90
     CO2chem_mod.F90
+    diagnostics_mod.F90
     geos_SimplePhotolysisMod.F90
     global_mod.F90
     integration_mod.F90

@@ -67,7 +67,7 @@ CONTAINS
     INTEGER :: i, j, k, n
 
     !   Chem parameters
-    real, allocatable  :: cvfac(:,:,:) ! Conversion factor from kg/kg -> mcl/cm3
+    real, allocatable  :: cvfac(:,:,:) ! Conversion factor
     real, allocatable  :: k_(:,:,:)    ! Rate constant
     real, pointer      :: prod(:,:,:), loss(:,:,:), CO(:,:,:)
 
@@ -88,8 +88,7 @@ CONTAINS
     ispc = ispecies('CO')
 
     !  Chemistry
-    !  ASSUMPTION: all species units are input kg/kg
-    !  CVFAC converts between units kg/kg <--> mcl/cm3
+    !  ASSUMPTION: all species units are input mol/mol
     !  --------------------------------------------------------
 
     allocate(k_(im,jm,km),    stat=RC)
@@ -98,7 +97,7 @@ CONTAINS
 !    cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
 
     do nst = 1,size(COinst) ! cycle over instances
-       loss  => COinst(nst)%loss(:,:,:) ! in kg/kg/s
+       loss  => COinst(nst)%loss(:,:,:) ! in mol/mol/s
        CO    => COinst(nst)%data3d(:,:,:) ! CO pointer makes the code cleaner
        
        !            CO + OH -> ...
@@ -121,20 +120,20 @@ CONTAINS
     !  -------------------------------
     !            CH4 + OH -> CO + ... 
     k_ = 2.45e-12*exp(-1775./met%t) ! 2nd order
-    prod = prod + k_*CH4*OH*cvfac*28.0104/params%AirMW
+    prod = prod + k_*CH4*OH*cvfac !*28.0104/params%AirMW
 
     !            CH4 + Cl -> CO + ...
     k_ = 7.10e-12*exp(-1270./met%t) ! 2nd order
-    prod = prod + k_*CH4*Cl*cvfac*28.0104/params%AirMW
+    prod = prod + k_*CH4*Cl*cvfac !*28.0104/params%AirMW
 
     !            CH4 + O1D -> CO + ...
     k_ = 1.75e-10 ! 2nd order
-    prod = prod + k_*CH4*O1D*cvfac*28.0104/params%AirMW
+    prod = prod + k_*CH4*O1D*cvfac !*28.0104/params%AirMW
 
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-    prod = prod + JV1*607.76522e-6*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
+    prod = prod + JV1*607.76522e-6!*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
 !    prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
 !    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
 

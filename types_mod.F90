@@ -43,7 +43,6 @@ module types_mod
      real, pointer, dimension(:,:,:) :: zle   
      real, pointer, dimension(:,:,:) :: rho    ! air density
      real, pointer, dimension(:,:,:) :: q     
-     real, pointer, dimension(:,:,:) :: qctot 
      real, pointer, dimension(:,:,:) :: qtot   ! Calculated locally. Not currently an available import.
 
      ! Computed quantities
@@ -71,7 +70,6 @@ module types_mod
      real, pointer, dimension(:,:)  :: lons
      integer                        :: HDT         ! model timestep (secs)
      integer                        :: NYMD, NHMS
-!     integer                        :: minPBL ! Min k index for PBL
      real                           :: AVO
      real                           :: AIRMW
      real                           :: RadToDeg ! Conversion factor

@@ -31,7 +31,7 @@ CONTAINS
     INTEGER :: i, j, k, n
 
     !   Chem parameters
-    real, allocatable  :: cvfac(:,:,:) ! Conversion factor from kg/kg -> mcl/cm3
+    real, allocatable  :: cvfac(:,:,:) ! Conversion factor
     real, allocatable  :: k_(:,:,:)    ! Rate constant
     real, pointer      :: prod(:,:,:), loss(:,:,:), CO2(:,:,:)
 
@@ -50,8 +50,7 @@ CONTAINS
     ispc = ispecies('CO2')
 
     !  Chemistry
-    !  ASSUMPTION: all species units are input kg/kg
-    !  CVFAC converts between units kg/kg <--> mcl/cm3
+    !  ASSUMPTION: all species units are input mol/mol
     !  --------------------------------------------------------
 
     allocate(k_(im,jm,km),    stat=RC)
@@ -70,7 +69,7 @@ CONTAINS
        k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
     enddo
     ! CO is in mol/mol.
-!    prod = prod + k_*CO*OH*cvfac*44.0098/params%AirMW
+!    prod = prod + k_*CO*OH*cvfac !*44.0098/params%AirMW
 
     prod => null()
 

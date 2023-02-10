@@ -68,14 +68,16 @@ contains
           if (sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + &
-                                     sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
-                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
+                                     sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:)  * &
+                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k) * &
+                                     params%airmw / inst%mw
              end do
           else
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + &
                                      sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
-                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
+                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k) * &
+                                     params%airmw / inst%mw
              end do
           endif
        else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
@@ -87,14 +89,15 @@ contains
                 if (sfc_flux(n)%flux(i,j) .gt. 0.e0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) +  &
                                                       sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
-                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
+                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                                      params%airmw / inst%mw
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
                    ! Loop over all instances
                    do nst=1,NINSTANCES
                       if (instances(nst)%p%ispecies .eq. spc) &
@@ -109,14 +112,15 @@ contains
                 ! Source term?
                 if (sfc_flux(n)%flux(i,j) .gt. 0.e0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) +  &
-                                        sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
+                                        sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                        params%airmw / inst%mw
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES
@@ -143,13 +147,15 @@ contains
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + inst%mask(:,:) * &
                                      sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * fDNL(:,:) * &
-                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
+                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)* &
+                                     params%airmw / inst%mw
              end do
           else
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + inst%mask(:,:) * &
                                      sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
-                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)
+                                     sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)* &
+                                     params%airmw / inst%mw
              end do
           endif
        else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
@@ -161,14 +167,15 @@ contains
                 if (sfc_flux(n)%flux(i,j) .gt. 0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) + inst%mask(i,j) * &
                                                       sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
-                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
+                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                                      params%airmw / inst%mw
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES
@@ -192,14 +199,16 @@ contains
                 if (sfc_flux(n)%flux(i,j) .gt. 0) then
                    inst%prod(i,j,k)   = inst%prod(i,j,k) + inst%mask(i,j) * &
                                                       sfc_flux(n)%flux(i,j) * &
-                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)
+                                                      sfc_flux(n)%scalefactor * &
+                                                      grav / met%delp(i,j,k) * &
+                                                      params%airmw / inst%mw
                    cycle
                 endif
                 ! Loss term?
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k)
+                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES

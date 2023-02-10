@@ -41,6 +41,10 @@ module GEOScarbon_GridCompMod
 !   is done with two run methods. GridCompRun1 does surface fluxes, and GridCompRun2
 !   does the chemistry.
 !
+! OPERATING ASSUMPTIONS:
+! 1) Incoming surface fluxes are kg <species> m-2 s-1. e.g. kgCO2/m2/s
+! 2) 
+
 ! NOTES:
 ! 1) TOTAL/AGGREGATE FIELDS: Totals of CO2, CO & CH4 are NOT independent instances.
 !    They are used for diagnostics and coupling with other modules (e.g. grid comps)
@@ -49,7 +53,9 @@ module GEOScarbon_GridCompMod
 ! !REVISION HISTORY:
 ! 02Dec2022  M.S.Long   First pass
 ! 08Feb2023  M.S.Long   Preliminary tests against GOCART CH4, CO & CO2. Passed.
-
+! 10Feb2023  M.S.Long   Convert operations from kg/kg to mol/mol. Species are 
+!                       advected as mol/mol (<-assuming this is appropriate)
+!
 !EOP
 !===========================================================================
 
@@ -675,25 +681,24 @@ contains
 !   to use external sources for CO2 & CH4 in the 
 !   case where a user disables a species (e.g. declares no instances of CH4)
 
-!   At this point, local species (CO, CH4 & CO2) are kg/kg. If they are to be used
-!   for the chem ops, they get converted to mol/mol_dry and the back.
+!   At this point, local species (CO, CH4 & CO2) are mol/mol.
 !    if (nCH4 .gt. 0) then
 !       CH4ptr => CH4_total
-!       CH4ptr = CH4ptr*params%AirMW/16.0422
+!       CH4ptr = CH4ptr !*params%AirMW/16.0422
 !    else
        call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
 !    endif
 
     if (nCO2 .gt. 0) then
        CO2ptr => CO2_total
-       CO2ptr = CO2ptr*params%AirMW/44.0098
+       CO2ptr = CO2ptr !*params%AirMW/44.0098
     else
        ! Need an external CO2 source. call MAPL_GetPointer(import, CO2ptr, 'CO_CH4',__RC__)
     endif
 
     if (nCO  .gt. 0) then
        COptr  => CO_total
-       COptr  = COptr*params%AirMW/28.0104
+       COptr  = COptr !*params%AirMW/28.0104
     else
        ! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
     endif
@@ -704,9 +709,9 @@ contains
     call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
 
     ! Convert back to kg/kg
-    if (nCH4 .gt. 0) CH4ptr = CH4ptr*16.0422/params%airmw 
-    if (nCO2 .gt. 0) CO2ptr = CO2ptr*44.0098/params%airmw 
-    if (nCO  .gt. 0)  COptr =  COptr*28.0104/params%airmw 
+!    if (nCH4 .gt. 0) CH4ptr = CH4ptr*16.0422/params%airmw 
+!    if (nCO2 .gt. 0) CO2ptr = CO2ptr*44.0098/params%airmw 
+!    if (nCO  .gt. 0)  COptr =  COptr*28.0104/params%airmw 
 
     CH4ptr => null()
     CO2ptr => null()
@@ -727,19 +732,22 @@ contains
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+!       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+       Ptr3d = (CO2_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+!       Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+       Ptr3d = (CH4_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+!       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+       Ptr3d = (CO_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
@@ -998,7 +1006,7 @@ contains
     call MAPL_AddInternalSpec(gc,&
          short_name =trim(species)//'_'//trim(name), &
          long_name  =trim(species)//' carbon field', &
-         units      ='kg kg-1', &
+         units      ='mol mol-1', &
          dims       =MAPL_DimsHorzVert, &
          vlocation  =MAPL_VlocationCenter, &
 !         restart    =MAPL_RestartOptional, &
@@ -1521,7 +1529,7 @@ contains
     call MAPL_AddInternalSpec(gc,                           &
          short_name =trim(species),                         &
          long_name  ='Aggregate '//trim(species)//' field', &
-         units      ='kg kg-1',                             &
+         units      ='mol mol-1',                             &
          dims       =MAPL_DimsHorzVert,                     &
          vlocation  =MAPL_VlocationCenter,                  &
          restart    =MAPL_RestartOptional,                  &

@@ -52,7 +52,7 @@ contains
     INTEGER :: i, j, k, n
 
     !   Chem parameters
-    real, allocatable  :: cvfac(:,:,:) ! Conversion factor from kg/kg -> mcl/cm3
+    real, allocatable  :: cvfac(:,:,:) ! Conversion factor
     real, allocatable  :: k_(:,:,:)    ! Rate constant
     real, pointer      :: prod(:,:,:), loss(:,:,:), CH4(:,:,:)
 
@@ -73,7 +73,7 @@ contains
     cvfac =  1e-3*met%rho*params%avo/params%airmw ! mol/mol <-> molec/cm3
 
     do nst = 1,size(CH4inst) ! cycle over instances
-       loss  => CH4inst(nst)%loss(:,:,:) ! in kg/kg/s
+       loss  => CH4inst(nst)%loss(:,:,:) ! in mol/mol/s
        CH4    => CH4inst(nst)%data3d(:,:,:) ! CH4 pointer makes the code cleaner
 
        !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products

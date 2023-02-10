@@ -1,6 +1,6 @@
 module global_mod
   ! Global scope arrays, variables, and constants
-  ! used throughout the GEOScarbon component but not specific
+  ! used throughout the RRG component but not specific
   ! to any coupling environment (ESMF/MAPL, etc.)
   !
 

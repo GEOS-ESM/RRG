@@ -2,10 +2,10 @@
 !=============================================================================
 !BOP
 
-! !MODULE: GEOScarbon_GridCompMod
+! !MODULE: RRG_GridCompMod
 
 ! !INTERFACE:
-module GEOScarbon_GridCompMod
+module RRG_GridCompMod
   
 ! !USES:
    use ESMF
@@ -129,9 +129,9 @@ contains
 !   Load resource file 
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'GEOScarbon_GridComp.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'RRG_GridComp.rc', rc=status)
     if (status /= 0) then
-      if (mapl_am_i_root()) print*,'GEOScarbon_GridComp.rc does not exist!'
+      if (mapl_am_i_root()) print*,'RRG_GridComp.rc does not exist!'
       VERIFY_(STATUS)
     end if
 
@@ -242,9 +242,9 @@ contains
 !   Load resource file
 !   ------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'GEOScarbon_GridComp.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'RRG_GridComp.rc', rc=status)
     if (status /= 0) then
-      if (mapl_am_i_root()) print*,'GEOScarbon_GridComp.rc does not exist!'
+      if (mapl_am_i_root()) print*,'RRG_GridComp.rc does not exist!'
       VERIFY_(STATUS)
     end if
 
@@ -909,7 +909,7 @@ contains
     
     integer :: i
 
-   __Iam__('GEOScarbon:fillFluxes')
+   __Iam__('RRG:fillFluxes')
 
     RC = 0
 
@@ -973,9 +973,9 @@ contains
                   DIMS       = MAPL_DimsHorzOnly,                    &
                   VLOCATION  = MAPL_VLocationNone,                   &
                   RESTART    = MAPL_RestartSkip,   __RC__)
-             if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: added '//trim(string)//' to import state'
+             if (MAPL_am_I_root()) write(*,*) 'RRG: added '//trim(string)//' to import state'
           else
-             write(*,*) 'GEOScarbon:Unpaired flux in RC file for species ', trim(species) 
+             write(*,*) 'RRG:Unpaired flux in RC file for species ', trim(species) 
           endif
        else
           cycle
@@ -1035,7 +1035,7 @@ contains
     __Iam__('Readfluxtable')
 
     if( MAPL_AM_I_ROOT() ) then
-       print *, 'GEOScarbon_GridComp: Reading config file:'
+       print *, 'RRG_GridComp: Reading config file:'
        print *, '-----------------------------------------'
     endif
 
@@ -1090,10 +1090,10 @@ contains
 
           ! Error if not found
           if (RC /= ESMF_SUCCESS) then
-             errmsg = 'GEOScarbon: Error registering flux pair. '//trim(string1)//' not an instance'
+             errmsg = 'RRG: Error registering flux pair. '//trim(string1)//' not an instance'
              _ASSERT(.false., errmsg)
           elseif (MAPL_am_I_root()) then
-             write(*,*) 'GEOScarbon: Found instance '//trim(string1)
+             write(*,*) 'RRG: Found instance '//trim(string1)
           endif
        else
           cycle
@@ -1107,16 +1107,16 @@ contains
 
           ! Error if not found
           if (MAPL_am_I_root() .and. RC /= ESMF_SUCCESS) then
-             write(*,*) 'GEOScarbon: Did not find '//trim(string2)//' in import state'
+             write(*,*) 'RRG: Did not find '//trim(string2)//' in import state'
              VERIFY_(RC)
           elseif (MAPL_am_I_root()) then
-             write(*,*) 'GEOScarbon: Found surface flux '//trim(string2)
+             write(*,*) 'RRG: Found surface flux '//trim(string2)
           endif
 
        else ! string is empty, unpaired entry
 
           ! Exit with error
-          _ASSERT(.FALSE.,'ERROR: GEOScarbon: Unpaired surface_flux entry in GEOScarbon_GridComp.rc')
+          _ASSERT(.FALSE.,'ERROR: RRG: Unpaired surface_flux entry in RRG_GridComp.rc')
           RETURN_(ESMF_SUCCESS)
 
        endif
@@ -1131,7 +1131,7 @@ contains
           string3 = ESMF_UtilStringUpperCase(string3, rc=status)
 
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
-             errmsg = 'GEOScarbon::ConfigFile: invalid character in surface pairing table: '//trim(string3)
+             errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false.,errmsg)
              RETURN_(ESMF_SUCCESS)
           endif
@@ -1147,7 +1147,7 @@ contains
           string3 = ESMF_UtilStringUpperCase(string3, rc=status)
 
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
-             errmsg = 'GEOScarbon::ConfigFile: invalid character in surface pairing table: '//trim(string3)
+             errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false., errmsg)
              RETURN_(ESMF_SUCCESS)
           endif
@@ -1163,7 +1163,7 @@ contains
           string3 = ESMF_UtilStringUpperCase(string3, rc=status)
 
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
-             errmsg = 'GEOScarbon::ConfigFile: invalid character in surface pairing table: '//trim(string3)
+             errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false., errmsg)
              RETURN_(ESMF_SUCCESS)
           endif
@@ -1183,7 +1183,7 @@ contains
     enddo
     
     if (MAPL_am_I_root()) then
-       write(*,*) '<<>> GEOScarbon::'//trim(species)//' paired surface fluxes <<>>', nlist
+       write(*,*) '<<>> RRG::'//trim(species)//' paired surface fluxes <<>>', nlist
        do i=nelm+1,nelm+nlist
           if (sfc_flux(i)%diurnal .and. sfc_flux(i)%pblmix) &
                write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing and diurnal scaling', sfc_flux(i)%scalefactor
@@ -1591,7 +1591,7 @@ contains
                    found = .true.
 ! ### What to do if found?
 ! ### outcome option. Die?
-!                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry already declared as an active instance'
+!                if (MAPL_am_I_root()) write(*,*) 'RRG: '//trim(species)//' passive instance entry already declared as an active instance'
 !                VERIFY_(-1)
 ! ### outcome option. Toggle from active to passive
                    GI(j)%active = .false.
@@ -1599,7 +1599,7 @@ contains
              enddo
              if (.not. found) then
 ! ### outcome option. Die if it's not already a declared instance.
-!                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry not in list of instances'
+!                if (MAPL_am_I_root()) write(*,*) 'RRG: '//trim(species)//' passive instance entry not in list of instances'
 !                VERIFY_(-1)
 ! ### outcome option. Register as a new instance
                 call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .true., status)
@@ -1616,4 +1616,4 @@ contains
 
   end subroutine ProcessInstances
 
-end module GEOScarbon_GridCompMod
+end module RRG_GridCompMod

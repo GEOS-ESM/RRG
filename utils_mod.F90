@@ -238,7 +238,7 @@ module utils_mod
          endif
       enddo
       if (.not. found) then ! the instance isn't in the list!
-         write(*,'(a)') 'GEOScarbon::surface flux: flux added without a registered instance,'
+         write(*,'(a)') 'RRG::surface flux: flux added without a registered instance,'
          write(*,'(a)') '                          Flux: '//trim(sfc_flux(n)%shortname)
          write(*,'(a)') '                          Instance: '//trim(sfc_flux(n)%instance_pair)
          write(*,'(a)') 'Potential causes: 1) fluxes were added before registering instances'

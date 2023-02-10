@@ -48,6 +48,7 @@ module GEOScarbon_GridCompMod
 !
 ! !REVISION HISTORY:
 ! 02Dec2022  M.S.Long   First pass
+! 08Feb2023  M.S.Long   Preliminary tests against GOCART CH4, CO & CO2. Passed.
 
 !EOP
 !===========================================================================
@@ -137,13 +138,15 @@ contains
        VERIFY_(STATUS) 
     endif
 
-! Load instances    
+!   Load instances    
+!   --------------
     call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(STATUS)
     call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.043,  nCH4, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); VERIFY_(STATUS)
     
 
-! Fluxes
+!   Fluxes
+!   ------
     call RegisterFluxWithMAPL( GC, cfg, 'CO' , status ); VERIFY_(status)
     call RegisterFluxWithMAPL( GC, cfg, 'CO2', status ); VERIFY_(status)
     call RegisterFluxWithMAPL( GC, cfg, 'CH4', status ); VERIFY_(status)
@@ -194,12 +197,8 @@ contains
     type (ESMF_FieldBundle)              :: Bundle_DP
     type(ESMF_Field)                     :: field
 
-!    real                                 :: CDT         ! chemistry timestep (secs)
-!    real, pointer, dimension(:,:)        :: lats 
-!    real, pointer, dimension(:,:)        :: lons
-!    integer                              :: HDT         ! model     timestep (secs)
     integer                              :: i, n, dims(3)
-    type (MAPL_VarSpec), pointer         :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
+    type (MAPL_VarSpec), pointer         :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc.
     
     __Iam__('Initialize')
 
@@ -234,8 +233,8 @@ contains
     grav            = MAPL_GRAV
     params%RadToDeg = 180./MAPL_PI
 
-!  Load resource file and get number of bins 
-!  -------------------------------------------
+!   Load resource file
+!   ------------------
     cfg = ESMF_ConfigCreate (__RC__)
     call ESMF_ConfigLoadFile (cfg, 'GEOScarbon_GridComp.rc', rc=status)
     if (status /= 0) then
@@ -259,7 +258,8 @@ contains
     if (nCO2 .gt. 0) call ReadFluxTable( import, internal, cfg, 'CO2', __RC__ )
     if (nCH4 .gt. 0) call ReadFluxTable( import, internal, cfg, 'CH4', __RC__ )
 
-! Masks
+!   Read Masks
+!   ----------
     if (nCO  .gt. 0) call ReadMasksTable( import, cfg, CO , __RC__ )
     if (nCO2 .gt. 0) call ReadMasksTable( import, cfg, CO2, __RC__ )
     if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
@@ -479,7 +479,7 @@ contains
 ! ===============================================================
 !                            D O N E
 !   Cleanup
-!   Lots of memory leak potential here. Beware!
+!   Lots of memory leak potential here. Need to be thorough
     do i=1,NINSTANCES
        ! deallocate the prod/loss arrays for each instance
        deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
@@ -633,7 +633,8 @@ contains
     call MAPL_SunGetInsolation(params%lons, params%lats, orbit, met%cosz, met%slr, clock=clock, __RC__)
 
 !  Compute the O2 & O3 column
-!  ---------------------
+!  -- adapted from GOCART
+!  --------------------------
     ! Below, I don't understand where '0.50' comes from (unless its for the average delp), and why a 1.e-4 factor is needed
     ! to make O2col work. This was transferred from CH4_GridCompMod.F90 in GOCART. -- MSL
     r = MAPL_AVOGAD*0.50/(MAPL_GRAV*MAPL_AIRMW) ! r = Nsuba*0.50/(mwtAir*grav), copied from CFC_GridCompMod.F90 6.022e26 = mcl/kmole
@@ -645,6 +646,8 @@ contains
        O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
    
+    O3col = 0.
+
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
     do k=1,params%km
@@ -667,18 +670,19 @@ contains
 !   -- each species' chemistry
 !   -- CURRENTLY: OH, O1D and Cl are in mcl/cm3
 
+!   ==================================================
 !   This section allows species operations
 !   to use external sources for CO2 & CH4 in the 
 !   case where a user disables a species (e.g. declares no instances of CH4)
 
 !   At this point, local species (CO, CH4 & CO2) are kg/kg. If they are to be used
 !   for the chem ops, they get converted to mol/mol_dry and the back.
-    if (nCH4 .gt. 0) then
-       CH4ptr => CH4_total
-       CH4ptr = CH4ptr*params%AirMW/16.0422
-    else
+!    if (nCH4 .gt. 0) then
+!       CH4ptr => CH4_total
+!       CH4ptr = CH4ptr*params%AirMW/16.0422
+!    else
        call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
-    endif
+!    endif
 
     if (nCO2 .gt. 0) then
        CO2ptr => CO2_total
@@ -693,6 +697,7 @@ contains
     else
        ! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
     endif
+!   ==================================================
 
     call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr,       RC )
     call CO2_prodloss( CO2, OH, COptr,                                             RC ) ! Currently nothing in here. Just in case... 
@@ -1573,15 +1578,26 @@ contains
 
              found = .false.
              do j=1,size(GI)
-                ! Search for name in list of instances
+                ! Search for name in list of active instances
                 if (index(GI(j)%name,trim(inst_name)) .gt. 0) then
                    found = .true.
+! ### What to do if found?
+! ### outcome option. Die?
+!                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry already declared as an active instance'
+!                VERIFY_(-1)
+! ### outcome option. Toggle from active to passive
                    GI(j)%active = .false.
                 endif
              enddo
              if (.not. found) then
-                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry not in list of instances'
-                VERIFY_(-1)
+! ### outcome option. Die if it's not already a declared instance.
+!                if (MAPL_am_I_root()) write(*,*) 'GEOScarbon: '//trim(species)//' passive instance entry not in list of instances'
+!                VERIFY_(-1)
+! ### outcome option. Register as a new instance
+                call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .true., status)
+                VERIFY_(STATUS)
+                call RegisterInstanceWithMAPL( GC, trim(species), trim(inst_name), rc=status )
+                VERIFY_(STATUS)
              endif
 
           end do

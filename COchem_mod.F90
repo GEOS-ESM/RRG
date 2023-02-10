@@ -134,8 +134,8 @@ CONTAINS
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-!    prod = prod + JV1*607.76522e-6*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
-    prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
+    prod = prod + JV1*607.76522e-6*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
+!    prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
 !    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
 
     prod => null()

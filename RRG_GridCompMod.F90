@@ -652,15 +652,13 @@ contains
        O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
    
-    O3col = 0.
-
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
     do k=1,params%km
     do j=1,params%jm
     do i=1,params%im
        call CO2_photolysis_rate(i,j,k, params%km-k+1, met, O3col(i,j,k),       CO2photj(i,j,k))
-       call CH4_photolysis_rate(i,j,k,                met, O2col(i,j,k), 94.0, CH4photj(i,j,k))
+       call CH4_photolysis_rate(i,j,k,                met, O2col(i,j,k), 94.0, CH4photj(i,j,k)) !<- 94.0 comed from GOCART. It doesn't seem to vary so I just hard coded it here.
     enddo
     enddo
     enddo
@@ -682,12 +680,11 @@ contains
 !   case where a user disables a species (e.g. declares no instances of CH4)
 
 !   At this point, local species (CO, CH4 & CO2) are mol/mol.
-!    if (nCH4 .gt. 0) then
-!       CH4ptr => CH4_total
-!       CH4ptr = CH4ptr !*params%AirMW/16.0422
-!    else
+    if (nCH4 .gt. 0) then
+       CH4ptr => CH4_total
+    else
        call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
-!    endif
+    endif
 
     if (nCO2 .gt. 0) then
        CO2ptr => CO2_total
@@ -725,19 +722,19 @@ contains
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total                   )/(1.e0 - met%qtot)
+       Ptr3d = CO2_total/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CH4_total                   )/(1.e0 - met%qtot)
+       Ptr3d = CH4_total/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
     if (associated(Ptr3d)) then
-       Ptr3d = (CO_total                   )/(1.e0 - met%qtot)
+       Ptr3d = CO_total/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 

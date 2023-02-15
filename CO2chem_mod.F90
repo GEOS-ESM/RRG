@@ -69,7 +69,7 @@ CONTAINS
        k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
     enddo
     ! CO is in mol/mol.
-!    prod = prod + k_*CO*OH*cvfac
+    prod = prod + k_*CO*OH*cvfac
 
     prod => null()
 

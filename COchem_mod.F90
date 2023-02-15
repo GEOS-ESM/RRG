@@ -12,24 +12,12 @@ MODULE  COchem_mod
   !
   ! !DESCRIPTION:
   !
-  !  This module implements the (pre-ESMF) CO Grid Component. 
-  !
   ! !REVISION HISTORY:
   !
   !EOP
   !-------------------------------------------------------------------------
 
 CONTAINS
-
-  !-------------------------------------------------------------------------
-  !     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
-  !-------------------------------------------------------------------------
-  !BOP
-  !
-  ! !IROUTINE:  CO_ops : ...
-  !
-  ! !INTERFACE:
-  !
 
   SUBROUTINE CO_prodloss( COinst, OH, O1D, Cl, JV1, JV2, CH4, CO2, RC )
 
@@ -120,22 +108,22 @@ CONTAINS
     !  -------------------------------
     !            CH4 + OH -> CO + ... 
     k_ = 2.45e-12*exp(-1775./met%t) ! 2nd order
-    prod = prod + k_*CH4*OH*cvfac !*28.0104/params%AirMW
+    prod = prod + k_*CH4*OH*cvfac
 
     !            CH4 + Cl -> CO + ...
     k_ = 7.10e-12*exp(-1270./met%t) ! 2nd order
-    prod = prod + k_*CH4*Cl*cvfac !*28.0104/params%AirMW
+    prod = prod + k_*CH4*Cl*cvfac
 
     !            CH4 + O1D -> CO + ...
     k_ = 1.75e-10 ! 2nd order
-    prod = prod + k_*CH4*O1D*cvfac !*28.0104/params%AirMW
+    prod = prod + k_*CH4*O1D*cvfac
 
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-    prod = prod + JV1*607.76522e-6!*28.0104/44.0098!<<>>CO2    ! 1st order (1/s)
-!    prod = prod + JV1*CO2*28.0104/44.0098    ! 1st order (1/s)
-!    prod = prod + JV2*CH4*28.0104/16.0422    ! 1st order (1/s)
+    prod = prod + JV1*400.e-6    ! 1st order (1/s); Fixed CO2 for testing
+!    prod = prod + JV1*CO2    ! 1st order (1/s)
+!    prod = prod + JV2*CH4    ! 1st order (1/s)
 
     prod => null()
 

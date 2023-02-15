@@ -74,7 +74,7 @@ contains
 
     do nst = 1,size(CH4inst) ! cycle over instances
        loss  => CH4inst(nst)%loss(:,:,:) ! in mol/mol/s
-       CH4    => CH4inst(nst)%data3d(:,:,:) ! CH4 pointer makes the code cleaner
+       CH4   => CH4inst(nst)%data3d(:,:,:) ! CH4 pointer makes the code cleaner
 
        !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
        k_  = 2.45E-12*exp(-1775./met%T)
@@ -90,8 +90,6 @@ contains
 
        ! Loss rate from photolysis: CH4 + hv => ...
        loss = loss + JV*CH4
-
-!<<>> GET UNITS RIGHT FIRST!       met%Q = met%Q + 2.00*params%cdt*dCH4Phot(i1:i2,j1:j2,1:km)*MAPL_H2OMW/MAPL_AIRMW
 
        CH4  => null()
        loss => null()

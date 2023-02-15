@@ -72,7 +72,7 @@
 
     !  Add gas imports for CH4 & CO chemistry
     call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'OH',                                  &
+       SHORT_NAME = 'RRG_OH',                              &
        LONG_NAME  = 'hydroxyl',                            &
        UNITS      = 'molecules cm-3',                      &
        DIMS       = MAPL_DimsHorzVert,                     &
@@ -80,7 +80,7 @@
        __RC__)
 
     call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'Cl',                                  &
+       SHORT_NAME = 'RRG_Cl',                              &
        LONG_NAME  = 'atomic Cl',                           &
        UNITS      = 'molecules cm-3',                      &
        DIMS       = MAPL_DimsHorzVert,                     &
@@ -88,7 +88,7 @@
        __RC__)
 
     call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'O1D',                                 &
+       SHORT_NAME = 'RRG_O1D',                             &
        LONG_NAME  = 'singlet O',                           &
        UNITS      = 'molecules cm-3',                      &
        DIMS       = MAPL_DimsHorzVert,                     &

@@ -603,9 +603,9 @@ contains
     call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
-    CALL MAPL_GetPointer(import,     OH,      'OH', __RC__)
-    CALL MAPL_GetPointer(import,     Cl,      'Cl', __RC__)
-    CALL MAPL_GetPointer(import,    O1D,     'O1D', __RC__)
+    CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
+    CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
+    CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
@@ -691,14 +691,12 @@ contains
 
     if (nCO2 .gt. 0) then
        CO2ptr => CO2_total
-       CO2ptr = CO2ptr !*params%AirMW/44.0098
     else
        ! Need an external CO2 source. call MAPL_GetPointer(import, CO2ptr, 'CO_CH4',__RC__)
     endif
 
     if (nCO  .gt. 0) then
        COptr  => CO_total
-       COptr  = COptr !*params%AirMW/28.0104
     else
        ! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
     endif
@@ -707,11 +705,6 @@ contains
     call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr,       RC )
     call CO2_prodloss( CO2, OH, COptr,                                             RC ) ! Currently nothing in here. Just in case... 
     call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
-
-    ! Convert back to kg/kg
-!    if (nCH4 .gt. 0) CH4ptr = CH4ptr*16.0422/params%airmw 
-!    if (nCO2 .gt. 0) CO2ptr = CO2ptr*44.0098/params%airmw 
-!    if (nCO  .gt. 0)  COptr =  COptr*28.0104/params%airmw 
 
     CH4ptr => null()
     CO2ptr => null()
@@ -732,21 +725,18 @@ contains
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
     if (associated(Ptr3d)) then
-!       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
        Ptr3d = (CO2_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
     if (associated(Ptr3d)) then
-!       Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
        Ptr3d = (CH4_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
     if (associated(Ptr3d)) then
-!       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
        Ptr3d = (CO_total                   )/(1.e0 - met%qtot)
        Ptr3d => null()
     endif

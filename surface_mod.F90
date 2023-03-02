@@ -185,10 +185,6 @@ contains
                    else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
                       inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
                    endif
-!>>                   do nst=1,NINSTANCES
-!>>                      if (instances(nst)%p%ispecies .eq. spc) &
-!>>                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
-!>>                   enddo
                 endif
              enddo
              enddo
@@ -218,11 +214,6 @@ contains
                    else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
                       inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
                    endif
-!>>                   ! Loop over all instances
-!>>                   do nst=1,NINSTANCES
-!>>                      if (instances(nst)%p%ispecies .eq. spc) &
-!>>                           instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-!>>                   enddo
                 endif
              enddo
              enddo

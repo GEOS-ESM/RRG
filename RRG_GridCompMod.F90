@@ -277,15 +277,15 @@ contains
 !    set to ZERO so that no scavenging happens in MOIST
 
     do i=1,nCO
-       call ESMF_StateGet(internal, 'CO_'//trim(CO(i)%name), field, __RC__)
+       call ESMF_StateGet(internal, trim(CO(i)%name), field, __RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', (/0,0,0,0/), __RC__)
     enddo
     do i=1,nCO2
-       call ESMF_StateGet(internal, 'CO2_'//trim(CO2(i)%name), field, __RC__)
+       call ESMF_StateGet(internal, trim(CO2(i)%name), field, __RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', (/0,0,0,0/), __RC__)
     enddo
     do i=1,nCH4
-       call ESMF_StateGet(internal, 'CH4_'//trim(CH4(i)%name), field, __RC__)
+       call ESMF_StateGet(internal, trim(CH4(i)%name), field, __RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', (/0,0,0,0/), __RC__)
     enddo
 
@@ -388,7 +388,7 @@ contains
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
-       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
+       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%name), __RC__)
        allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
        instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
     enddo
@@ -614,7 +614,7 @@ contains
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
-       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%species)//'_'//trim(instances(i)%p%name), __RC__)
+       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%name), __RC__)
        allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
        instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
     enddo
@@ -994,7 +994,7 @@ contains
     endif
 
     call MAPL_AddInternalSpec(gc,&
-         short_name =trim(species)//'_'//trim(name), &
+         short_name =trim(species)//'.'//trim(name), &
          long_name  =trim(species)//' carbon field', &
          units      ='mol mol-1', &
          dims       =MAPL_DimsHorzVert, &
@@ -1072,7 +1072,7 @@ contains
           ! Find & verify instance
           RC = -1
           do i=1,size(instances)
-             if (trim(string1) .eq. trim(instances(i)%p%name)) then
+             if (trim(species)//'.'//trim(string1) .eq. trim(instances(i)%p%name)) then
                  RC = 0
                 exit
              endif
@@ -1080,16 +1080,17 @@ contains
 
           ! Error if not found
           if (RC /= ESMF_SUCCESS) then
-             errmsg = 'RRG: Error registering flux pair. '//trim(string1)//' not an instance'
+             errmsg = 'RRG: Error registering flux pair. '//trim(string1)//' not an instance of '//trim(species)
              _ASSERT(.false., errmsg)
           elseif (MAPL_am_I_root()) then
-             write(*,*) 'RRG: Found instance '//trim(string1)
+             write(*,*) 'RRG: Found instance '//trim(string1)//' for species '//trim(species)
           endif
+          string1 = trim(species)//'.'//trim(string1)
        else
           cycle
        endif
        ! The the import pair
-       call ESMF_ConfigGetAttribute ( cfg,value=string2, default='',rc=RC) ! 1st field is the instance name
+       call ESMF_ConfigGetAttribute ( cfg,value=string2, default='',rc=RC) ! 2nd field is the ExtData flux name
        if (string2 /= '') then ! If not blank...
 
           ! Find instance in internal state
@@ -1115,7 +1116,7 @@ contains
        ! - there are three possible tags to read, though one or none may be used
        diurnal = .false.
        pblmix  = .false.
-       call ESMF_ConfigGetAttribute ( cfg,value=string3, default='',rc=RC) ! 1st field is the instance name
+       call ESMF_ConfigGetAttribute ( cfg,value=string3, default='',rc=RC)
        if (string3 /= '') then ! If not a blank line.
 
           string3 = ESMF_UtilStringUpperCase(string3, rc=status)
@@ -1556,6 +1557,7 @@ contains
     ! ASSUMPTION: a species' residual is always the last instance 
     call Util_AddInstance( GI, 'residual', trim(species), MW, .true., status)
     VERIFY_(STATUS)
+    nInst = nInst+1
     call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
     VERIFY_(STATUS)
 

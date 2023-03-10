@@ -85,7 +85,7 @@ module utils_mod
       if (associated(tmp)) instance(1:n-1)    = tmp ! Pass the data back
       
       ! add the new instance info
-      instance(n)%name    = trim(name)
+      instance(n)%name    = trim(gas)//'.'//trim(name)
       instance(n)%species = trim(gas)
       instance(n)%active  = active
       instance(n)%index   = NINSTANCES

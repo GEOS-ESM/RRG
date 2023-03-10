@@ -60,6 +60,7 @@ contains
     do n=1,size(sfc_flux) ! should be > 0
        index = sfc_flux(n)%index
        inst => instances(index)%p
+
 !      --------------------
        if (.not. inst%hasmask) then
 !      -- N O  M A S K --

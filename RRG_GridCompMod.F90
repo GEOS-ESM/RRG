@@ -437,13 +437,6 @@ contains
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 ! ===============================================================
     
-    call MAPL_GetPointer( export, Ptr3d, 'CO2_ProdLoss', __RC__ )
-    if (associated(Ptr3d)) then
-       call diag_prodloss( CO2(:), Ptr3d, RC )
-       Ptr3d = Ptr3d * met%delp/grav ! Convert to kg/m2/s
-       Ptr3d => null()
-    endif
-
     ! Set emission diagnostic
     call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
     if (associated(Ptr2d)) then
@@ -722,6 +715,13 @@ contains
 
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+
+    call MAPL_GetPointer( export, Ptr3d, 'CO2_ProdLoss', __RC__ )
+    if (associated(Ptr3d)) then
+       call diag_prodloss( CO2(:), Ptr3d, RC )
+       Ptr3d = Ptr3d * met%delp/grav ! Convert to kg/m2/s
+       Ptr3d => null()
+    endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
     if (associated(Ptr3d)) then

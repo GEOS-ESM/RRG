@@ -85,7 +85,12 @@ module utils_mod
       if (associated(tmp)) instance(1:n-1)    = tmp ! Pass the data back
       
       ! add the new instance info
-      instance(n)%name    = trim(gas)//'.'//trim(name)
+      ! 'total' is a special case
+      if (trim(name) .eq. 'total') then
+         instance(n)%name    = trim(gas)
+      else
+         instance(n)%name    = trim(gas)//'.'//trim(name)
+      endif
       instance(n)%species = trim(gas)
       instance(n)%active  = active
       instance(n)%index   = NINSTANCES
@@ -204,7 +209,7 @@ module utils_mod
 
          ! populate last entry
          sfc_flux(n)%instance_pair = pair
-         sfc_flux(n)%shortname     = name
+         sfc_flux(n)%name          = name
          sfc_flux(n)%diurnal       = d
          sfc_flux(n)%pblmix        = p
          sfc_flux(n)%scalefactor   = scalefactor
@@ -220,7 +225,7 @@ module utils_mod
 
          ! populate entry
          sfc_flux%instance_pair = pair
-         sfc_flux%shortname     = name
+         sfc_flux%name          = name
          sfc_flux%diurnal       = d
          sfc_flux%pblmix        = p
          sfc_flux%scalefactor   = scalefactor
@@ -239,7 +244,7 @@ module utils_mod
       enddo
       if (.not. found) then ! the instance isn't in the list!
          write(*,'(a)') 'RRG::surface flux: flux added without a registered instance,'
-         write(*,'(a)') '                          Flux: '//trim(sfc_flux(n)%shortname)
+         write(*,'(a)') '                          Flux: '//trim(sfc_flux(n)%name)
          write(*,'(a)') '                          Instance: '//trim(sfc_flux(n)%instance_pair)
          write(*,'(a)') 'Potential causes: 1) fluxes were added before registering instances'
          write(*,'(a)') '                  2) the paired instance name is not a registered instance'
@@ -297,10 +302,28 @@ module utils_mod
       do i=1,n
          if (in(i)%p%active) active = 'active'
          if (.not. in(i)%p%active) active = 'passive'
-         write(*,'(a,i3)') '<<>> '//trim(in(i)%p%name)//' | '//trim(in(i)%p%species)//' | '//trim(active)//' | ', in(i)%p%index
+         write(*,'(a,l,a,i3)') '<<>> '//trim(in(i)%p%name)//' | '//trim(in(i)%p%species)//' | '//trim(active)//' | ', in(i)%p%hasmask,' | ',in(i)%p%index
       enddo
 
     end subroutine util_dumpinstances
+
+    subroutine util_dumpfluxes()
+      use global_mod, only : sf => sfc_flux
+!      use global_mod, only : in => instances
+
+      logical :: yesno
+      integer :: i, n
+      character(20) :: active
+
+      n = size(sf)
+
+      ! Dump surface flux info
+      write(*,'(a)') 'sfcflux name | paired with | scalefactor | diurnal | pblmix | index'
+      do i=1,n
+         write(*,*) '<<>> '//trim(sf(i)%name)//' | '//trim(sf(i)%instance_pair)//' | ',sf(i)%scalefactor,' | ', sf(i)%diurnal,' | ',sf(i)%pblmix,' | ',sf(i)%index
+      enddo
+
+    end subroutine util_dumpfluxes
 
     subroutine util_masksparsity( mask, inonzero, jnonzero, status )
 

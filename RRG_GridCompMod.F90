@@ -25,6 +25,7 @@ module RRG_GridCompMod
    ! Users can add new species to the system w/o
    ! having to add new code other than here in the main interface module.
    integer, save                  :: nCH4, nCO2, nCO ! number of instances
+   logical                        :: CO2activetotal, COactivetotal, CH4activetotal
    type(gas_instance), pointer    :: CO2(:) => null()
    type(gas_instance), pointer    ::  CO(:) => null()
    type(gas_instance), pointer    :: CH4(:) => null()
@@ -144,11 +145,27 @@ contains
        VERIFY_(STATUS) 
     endif
 
+    call ESMF_ConfigFindLabel(cfg,label='CO_active_total:',isPresent=present,rc=status)
+    VERIFY_(STATUS) 
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg, COactivetotal, Default=.FALSE., __RC__ )
+    endif
+    call ESMF_ConfigFindLabel(cfg,label='CO2_active_total:',isPresent=present,rc=status)
+    VERIFY_(STATUS) 
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg, CO2activetotal, Default=.FALSE., __RC__ )
+    endif
+    call ESMF_ConfigFindLabel(cfg,label='CH4_active_total:',isPresent=present,rc=status)
+    VERIFY_(STATUS) 
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg, CH4activetotal, Default=.FALSE., __RC__ )
+    endif
+
 !   Load instances    
 !   --------------
-    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  activeTotal_=COactivetotal,  rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, activeTotal_=CO2activetotal, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, activeTotal_=CH4activetotal, rc=status ); VERIFY_(STATUS)
     
 
 !   Fluxes
@@ -271,6 +288,7 @@ contains
     if (nCH4 .gt. 0) call ReadMasksTable( import, cfg, CH4, __RC__ )
 
 !DEBUG    if (MAPL_am_I_root()) call util_dumpinstances()
+!DEBUG    if (MAPL_am_I_root()) call util_dumpfluxes()
 
 !  Set physical parameters
 !  - Henry's Law constants. Only needed for GEOS
@@ -907,9 +925,9 @@ contains
     ! -- loop over the registered fluxes
     do i=1,size(sfc_flux)
        ! Right now we are assuming all fluxes are 2-D
-       CALL MAPL_GetPointer( import, sfc_flux(i)%flux, trim(sfc_flux(i)%shortname), notFoundOK=.FALSE., RC=RC )
+       CALL MAPL_GetPointer( import, sfc_flux(i)%flux, trim(sfc_flux(i)%name), notFoundOK=.FALSE., RC=RC )
        if (RC .eq. ESMF_RC_NOT_FOUND) then 
-          write(*,*) 'Could not find flux, '//trim(sfc_flux(i)%shortname)//' in imports. Aborting'
+          write(*,*) 'Could not find flux, '//trim(sfc_flux(i)%name)//' in imports. Aborting'
           RETURN_(RC)
        endif
        if (RC .ne. ESMF_SUCCESS) then
@@ -1177,13 +1195,13 @@ contains
        write(*,*) '<<>> RRG::'//trim(species)//' paired surface fluxes <<>>', nlist
        do i=nelm+1,nelm+nlist
           if (sfc_flux(i)%diurnal .and. sfc_flux(i)%pblmix) &
-               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing and diurnal scaling', sfc_flux(i)%scalefactor
+               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%name)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing and diurnal scaling', sfc_flux(i)%scalefactor
           if (sfc_flux(i)%diurnal .and. .not. sfc_flux(i)%pblmix) &
-               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with diurnal scaling', sfc_flux(i)%scalefactor
+               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%name)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with diurnal scaling', sfc_flux(i)%scalefactor
           if (.not. sfc_flux(i)%diurnal .and. sfc_flux(i)%pblmix) &
-               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing', sfc_flux(i)%scalefactor
+               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%name)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with PBL mixing', sfc_flux(i)%scalefactor
           if (.not. sfc_flux(i)%diurnal .and. .not. sfc_flux(i)%pblmix) &
-               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%shortname)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with no scaling or mixing', sfc_flux(i)%scalefactor
+               write(*,'(a,f14.5)') '<<>> Flux '//trim(sfc_flux(i)%name)//' paired with '//trim(species)//'::'//trim(sfc_flux(i)%instance_pair)//' with no scaling or mixing', sfc_flux(i)%scalefactor
        enddo
     endif
 
@@ -1252,14 +1270,14 @@ contains
              ! 2) Find instance and allocate mask
              found = .false.
              do i=1,size(instance)
-                if (trim(name) .eq. trim(instance(i)%name)) then
+                if (trim(species)//'.'//trim(name) .eq. trim(instance(i)%name)) then
                    found = .true.
                    exit
                    ! i is now the instance index
                 endif
              enddo
              if (.not. found) then
-                write(*,*) 'ReadMasksTable: not able to find instance '//trim(name)//' associated with '//trim(instance(1)%species)
+                write(*,*) 'ReadMasksTable: not able to find instance '//trim(species)//'.'//trim(name)//' associated with '//trim(instance(1)%species)
                 RC = -1
                 return
              endif
@@ -1278,7 +1296,7 @@ contains
                 !    4b) If a lat/lon box
                 call process_latlonbox( string, status )
              elseif (is_numeric(string)) then
-                !    4a) If an integer reference. Test for integer happens in process_imask()
+                !    4a) If an integer reference. Test-for-integer happens in process_imask()
                 call process_imask( instance(i), string, status )
              endif
              ! 5) Should be done. Dump info if needed
@@ -1480,7 +1498,7 @@ contains
        do n=1,nmasks
        if (instance%imask(n) .ne. -999) then
           species = instance%species
-          call MAPL_GetPointer(import, Ptr2D, trim(species)//'_regionMask', RC=RC)
+          call MAPL_GetPointer(import, Ptr2D, trim(species)//'_Mask', RC=RC)
           if (RC .ne. ESMF_SUCCESS) return
           where (Ptr2D .eq. instance%imask(n)) instance%mask = 1
           Ptr2D => null()
@@ -1491,7 +1509,7 @@ contains
     
   end subroutine ProcessExtdataMasks
 
-  subroutine ProcessInstances( GC, cfg, GI, species, MW, nInst, RC )
+  subroutine ProcessInstances( GC, cfg, GI, species, MW, nInst, activeTotal_, RC )
 
     implicit none
     type (ESMF_GridComp),        intent(inout) :: GC      ! gridded component
@@ -1499,15 +1517,21 @@ contains
     type(gas_instance), pointer, intent(inout) :: GI(:)
     character(*),                intent(in)    :: Species
     real,                        intent(in)    :: MW
+    logical, optional,           intent(in)    :: activeTotal_ ! Is the total an independent, active instance?
     integer,                     intent(out)   :: nInst   ! Number of registered instances
     integer,                     intent(out)   :: RC      ! return code
 
     ! Local
     integer           :: i,j,n
     character(len=32) :: inst_name
-    logical           :: present, found
+    logical           :: isPresent, found
+    logical           :: isActive = .true.
+    logical           :: activeTotal = .false. ! Assume not active
 
     __Iam__('ProcessInstances')
+
+    ! If the user provides this, then set to the user value
+    if (present(activetotal_)) activetotal = activeTotal_
 
     RC = 0
 
@@ -1517,19 +1541,40 @@ contains
     if (nInst .eq. 0) return
 
     !  define the total/aggregate field
-    call MAPL_AddInternalSpec(gc,                           &
-         short_name =trim(species),                         &
-         long_name  ='Aggregate '//trim(species)//' field', &
-         units      ='mol mol-1',                             &
-         dims       =MAPL_DimsHorzVert,                     &
-         vlocation  =MAPL_VlocationCenter,                  &
-         restart    =MAPL_RestartOptional,                  &
-         add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
-         __RC__)
+    if (activetotal) then
+       if (MAPL_am_I_root()) write(*,*) '<<>> registering '//trim(species)//' total as active'
+       ! Treat 
+       ! Register as tracer
+       call MAPL_AddInternalSpec(gc,                           &
+            short_name =trim(species),                         &
+            long_name  ='Aggregate '//trim(species)//' field', &
+            units      ='mol mol-1',                           &
+            dims       =MAPL_DimsHorzVert,                     &
+            vlocation  =MAPL_VlocationCenter,                  &
+            restart    =MAPL_RestartOptional,                  &
+            friendlyto ='DYNAMICS:TURBULENCE:MOIST',           &
+            add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
+            __RC__)
+
+       ! Add new active instance (assume active)
+       call Util_AddInstance( GI, 'total', trim(species), MW, .true., status)
+       VERIFY_(STATUS)
+
+    else
+       call MAPL_AddInternalSpec(gc,                           &
+            short_name =trim(species),                         &
+            long_name  ='Aggregate '//trim(species)//' field', &
+            units      ='mol mol-1',                           &
+            dims       =MAPL_DimsHorzVert,                     &
+            vlocation  =MAPL_VlocationCenter,                  &
+            restart    =MAPL_RestartOptional,                  &
+            add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
+            __RC__)
+    endif
 
     !  Create a region mask import
     call MAPL_AddImportSpec(GC,                          &
-         SHORT_NAME = trim(species)//'_regionMask',      &
+         SHORT_NAME = trim(species)//'_Mask',      &
          LONG_NAME  = '',                                &
          UNITS      = '',                                &
          DIMS       = MAPL_DimsHorzOnly,                 &
@@ -1540,6 +1585,9 @@ contains
     !  ----------------------------------
     call ESMF_ConfigFindLabel(cfg,trim(species)//'_instances:',rc=status)
     VERIFY_(STATUS)
+
+    if (activeTotal) isActive = .false. ! Since we have an active total, set all other instances to passive
+
     do i = 1, nInst
        call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
        VERIFY_(STATUS)
@@ -1549,13 +1597,13 @@ contains
        VERIFY_(STATUS)
 
        ! Add new active instance (assume active)
-       call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .true., status)
+       call Util_AddInstance( GI, trim(inst_name), trim(species), MW, isActive, status)
        VERIFY_(STATUS)
     end do
 
     ! If there are instances, then define an active residual by default
     ! ASSUMPTION: a species' residual is always the last instance 
-    call Util_AddInstance( GI, 'residual', trim(species), MW, .true., status)
+    call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
     VERIFY_(STATUS)
     nInst = nInst+1
     call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
@@ -1563,9 +1611,9 @@ contains
 
     !  Get passive instances and toggle them
     n = 0
-    call ESMF_ConfigFindLabel(cfg,label=trim(species)//'_passive_instances:',isPresent=present,rc=status)
+    call ESMF_ConfigFindLabel(cfg,label=trim(species)//'_passive_instances:',isPresent=ispresent,rc=status)
     VERIFY_(STATUS)
-    if (present) then
+    if (ispresent) then
        n = ESMF_ConfigGetLen(cfg,label=trim(species)//'_passive_instances:',rc=status)
        VERIFY_(STATUS)
        call ESMF_ConfigFindLabel(cfg,trim(species)//'_passive_instances:',rc=status)
@@ -1594,7 +1642,7 @@ contains
 !                if (MAPL_am_I_root()) write(*,*) 'RRG: '//trim(species)//' passive instance entry not in list of instances'
 !                VERIFY_(-1)
 ! ### outcome option. Register as a new instance
-                call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .true., status)
+                call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .false., status)
                 VERIFY_(STATUS)
                 call RegisterInstanceWithMAPL( GC, trim(species), trim(inst_name), rc=status )
                 VERIFY_(STATUS)

@@ -3,6 +3,7 @@ UNITS! FIX UNITS!
 Development notes:
 /discover/nobackup/bweir/GEOS/runs/m2cc-v1_ana
 CH4 emissions: Negative fluxes lead to different outcomes
+INITIAL DEVELOPMENT TASK OUTLINE
 * TODO:
   Mass balance
   Run with a species 'off'
@@ -88,3 +89,18 @@ CH4 emissions: Negative fluxes lead to different outcomes
 
    There is an issue with passive instances impacting the aggregates. Not sure what the cause is.
    
+
+1st REVISION DEVELOPMENT OUTLINE
+Currently in branch 'activetotal'
+* How to get an option for active/prognostic/independent species total?
+Requirements
+** All emissions are added to total
+** Total has its own P/L computed
+** The other instances are not summed into the aggregate
+This can be done by forcing all instances to be 'passive' if active_total is .true.
+-- added this to RRG_GridCompMod::ProcessInstances with the logical 'isActive'
+   If a species is declared with activeTotal = .true. all instances other than 'total'
+   are set to 'passive'. This bypasses any aggregation activity by util_aggregate().
+-- NOTE: this also diables the utility of the *.residual instance. This will no longer
+   initialize the fields. Users will have to define a restart field for the total instance
+   ... currently the total instance name is simply the name of the gas, e.g. CO, CO2, or CH4

@@ -1,5 +1,7 @@
 module integration_mod
 
+  use MAPL
+
   implicit none
   public
 

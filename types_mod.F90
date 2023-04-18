@@ -2,7 +2,7 @@ module types_mod
   implicit none
   public
   
-  integer, PARAMETER             :: MAXMASKS = 10
+  integer, PARAMETER                 :: MAXMASKS = 10
 
   type gas_instance
      real, pointer, DIMENSION(:,:,:) :: data3d ! Abundance
@@ -13,7 +13,8 @@ module types_mod
      integer                         :: index
      integer                         :: ispecies
      logical                         :: hasMask = .false.
-     integer                         :: imask(MAXMASKS) = -999 ! Up to 10 masks can be superimposed
+     logical                         :: activeTotal = .false. ! Assume passive/diagnostic total
+     integer                         :: imask(MAXMASKS) = -999 ! Up to MAXMASKS masks can be superimposed
      integer, pointer                :: mask(:,:)! => null()
      ! Sparse mask indices. For future use
 !     integer, pointer                :: mask_inonzero(:) => null() ! We want this to be saved
@@ -55,7 +56,7 @@ module types_mod
      real, pointer, DIMENSION(:,:)   :: flux
      logical                         :: diurnal = .false. ! Assume no by default
      logical                         :: pblmix  = .false. ! Assume no by default
-     character(len=255)              :: shortname
+     character(len=255)              :: name
      character(len=255)              :: instance_pair
      integer                         :: index ! which gas_instance index is this flux associated with?
      real                            :: scalefactor = 1.e0 ! Default to 1.

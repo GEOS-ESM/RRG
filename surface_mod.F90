@@ -59,7 +59,7 @@ contains
 !         and thus to a minimum
     do n=1,size(sfc_flux) ! should be > 0
        index = sfc_flux(n)%index
-       inst => instances(index)%p
+       inst => instances(index)%p ! For cleanliness & convenience
 
 !      --------------------
        if (.not. inst%hasmask) then
@@ -101,7 +101,7 @@ contains
                    fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
                    ! Loop over all instances
                    do nst=1,NINSTANCES
-                      if (instances(nst)%p%ispecies .eq. spc) &
+                      if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
                            instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
                    enddo
                 endif
@@ -125,7 +125,7 @@ contains
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc) &
+                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
                               instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                       enddo
                    else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
@@ -180,7 +180,7 @@ contains
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc) &
+                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
                               instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                       enddo
                    else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
@@ -209,11 +209,11 @@ contains
                    if (inst%active) then
                    ! Active instance? Loop over all instances in the aggregate
                       do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc) &
+                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
                               instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
                       enddo
-                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
-                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   else ! not active, only remove this instance
+                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*aggregate(spc)%q(i,j,k)!inst%data3d(i,j,k)
                    endif
                 endif
              enddo

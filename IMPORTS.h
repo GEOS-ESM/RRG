@@ -97,6 +97,14 @@
 
 ! 2-D
      call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'AREA',                               &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'm^2',                                &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,    __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'ZPBL',                               &
         LONG_NAME  = 'Planetary boundary layer height',    &
         UNITS      = 'm',                                  &

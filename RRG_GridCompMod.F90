@@ -25,7 +25,6 @@ module RRG_GridCompMod
    ! Users can add new species to the system w/o
    ! having to add new code other than here in the main interface module.
    integer, save                  :: nCH4, nCO2, nCO ! number of instances
-   logical                        :: CO2activetotal, COactivetotal, CH4activetotal
    type(gas_instance), pointer    :: CO2(:) => null()
    type(gas_instance), pointer    ::  CO(:) => null()
    type(gas_instance), pointer    :: CH4(:) => null()
@@ -145,27 +144,11 @@ contains
        VERIFY_(STATUS) 
     endif
 
-    call ESMF_ConfigFindLabel(cfg,label='CO_active_total:',isPresent=present,rc=status)
-    VERIFY_(STATUS) 
-    if (present) then
-       call ESMF_ConfigGetAttribute(cfg, COactivetotal, Default=.FALSE., __RC__ )
-    endif
-    call ESMF_ConfigFindLabel(cfg,label='CO2_active_total:',isPresent=present,rc=status)
-    VERIFY_(STATUS) 
-    if (present) then
-       call ESMF_ConfigGetAttribute(cfg, CO2activetotal, Default=.FALSE., __RC__ )
-    endif
-    call ESMF_ConfigFindLabel(cfg,label='CH4_active_total:',isPresent=present,rc=status)
-    VERIFY_(STATUS) 
-    if (present) then
-       call ESMF_ConfigGetAttribute(cfg, CH4activetotal, Default=.FALSE., __RC__ )
-    endif
-
 !   Load instances    
 !   --------------
-    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  activeTotal_=COactivetotal,  rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, activeTotal_=CO2activetotal, rc=status ); VERIFY_(STATUS)
-    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, activeTotal_=CH4activetotal, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(STATUS)
+    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); VERIFY_(STATUS)
     
 
 !   Fluxes
@@ -398,6 +381,7 @@ contains
 !              G E T  D A T A  P O I N T E R S
 !   Associate the met fields
 !   -----------------------------------
+    call MAPL_GetPointer(import,met%area, 'AREA', __RC__) ! Grid box area, m^2
     call MAPL_GetPointer(import,met%pblh, 'ZPBL', __RC__) ! pblh
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
     call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
@@ -475,23 +459,23 @@ contains
     endif
 
     !
-!>>    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
-!>>    if (associated(Ptr3d)) then
-!>>       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
-!>>       Ptr3d => null()
-!>>    endif
-!>>    
-!>>    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
-!>>    if (associated(Ptr3d)) then
-!>>       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
-!>>       Ptr3d => null()
-!>>    endif
-!>>
-!>>    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
-!>>    if (associated(Ptr3d)) then
-!>>       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
-!>>       Ptr3d => null()
-!>>    endif
+    call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+    
+    call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO2_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
+
+    call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+    if (associated(Ptr3d)) then
+       Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+       Ptr3d => null()
+    endif
 
 ! ===============================================================
 !                            D O N E
@@ -1012,7 +996,7 @@ contains
     endif
 
     call MAPL_AddInternalSpec(gc,&
-         short_name =trim(species)//'.'//trim(name), &
+         short_name =trim(species)//'_'//trim(name), &
          long_name  =trim(species)//' carbon field', &
          units      ='mol mol-1', &
          dims       =MAPL_DimsHorzVert, &
@@ -1090,7 +1074,7 @@ contains
           ! Find & verify instance
           RC = -1
           do i=1,size(instances)
-             if (trim(species)//'.'//trim(string1) .eq. trim(instances(i)%p%name)) then
+             if (trim(species)//'_'//trim(string1) .eq. trim(instances(i)%p%name)) then
                  RC = 0
                 exit
              endif
@@ -1103,7 +1087,7 @@ contains
           elseif (MAPL_am_I_root()) then
              write(*,*) 'RRG: Found instance '//trim(string1)//' for species '//trim(species)
           endif
-          string1 = trim(species)//'.'//trim(string1)
+          string1 = trim(species)//'_'//trim(string1)
        else
           cycle
        endif
@@ -1270,14 +1254,14 @@ contains
              ! 2) Find instance and allocate mask
              found = .false.
              do i=1,size(instance)
-                if (trim(species)//'.'//trim(name) .eq. trim(instance(i)%name)) then
+                if (trim(species)//'_'//trim(name) .eq. trim(instance(i)%name)) then
                    found = .true.
                    exit
                    ! i is now the instance index
                 endif
              enddo
              if (.not. found) then
-                write(*,*) 'ReadMasksTable: not able to find instance '//trim(species)//'.'//trim(name)//' associated with '//trim(instance(1)%species)
+                write(*,*) 'ReadMasksTable: not able to find instance '//trim(species)//'_'//trim(name)//' associated with '//trim(instance(1)%species)
                 RC = -1
                 return
              endif
@@ -1509,7 +1493,7 @@ contains
     
   end subroutine ProcessExtdataMasks
 
-  subroutine ProcessInstances( GC, cfg, GI, species, MW, nInst, activeTotal_, RC )
+  subroutine ProcessInstances( GC, cfg, GI, species, MW, nInst, RC )
 
     implicit none
     type (ESMF_GridComp),        intent(inout) :: GC      ! gridded component
@@ -1517,7 +1501,6 @@ contains
     type(gas_instance), pointer, intent(inout) :: GI(:)
     character(*),                intent(in)    :: Species
     real,                        intent(in)    :: MW
-    logical, optional,           intent(in)    :: activeTotal_ ! Is the total an independent, active instance?
     integer,                     intent(out)   :: nInst   ! Number of registered instances
     integer,                     intent(out)   :: RC      ! return code
 
@@ -1526,12 +1509,8 @@ contains
     character(len=32) :: inst_name
     logical           :: isPresent, found
     logical           :: isActive = .true.
-    logical           :: activeTotal = .false. ! Assume not active
 
     __Iam__('ProcessInstances')
-
-    ! If the user provides this, then set to the user value
-    if (present(activetotal_)) activetotal = activeTotal_
 
     RC = 0
 
@@ -1541,36 +1520,15 @@ contains
     if (nInst .eq. 0) return
 
     !  define the total/aggregate field
-    if (activetotal) then
-       if (MAPL_am_I_root()) write(*,*) '<<>> registering '//trim(species)//' total as active'
-       ! Treat 
-       ! Register as tracer
-       call MAPL_AddInternalSpec(gc,                           &
-            short_name =trim(species),                         &
-            long_name  ='Aggregate '//trim(species)//' field', &
-            units      ='mol mol-1',                           &
-            dims       =MAPL_DimsHorzVert,                     &
-            vlocation  =MAPL_VlocationCenter,                  &
-            restart    =MAPL_RestartOptional,                  &
-            friendlyto ='DYNAMICS:TURBULENCE:MOIST',           &
-            add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
-            __RC__)
-
-       ! Add new active instance (assume active)
-       call Util_AddInstance( GI, 'total', trim(species), MW, .true., status)
-       VERIFY_(STATUS)
-
-    else
-       call MAPL_AddInternalSpec(gc,                           &
-            short_name =trim(species),                         &
-            long_name  ='Aggregate '//trim(species)//' field', &
-            units      ='mol mol-1',                           &
-            dims       =MAPL_DimsHorzVert,                     &
-            vlocation  =MAPL_VlocationCenter,                  &
-            restart    =MAPL_RestartOptional,                  &
-            add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
-            __RC__)
-    endif
+    call MAPL_AddInternalSpec(gc,                           &
+         short_name =trim(species),                         &
+         long_name  ='Aggregate '//trim(species)//' field', &
+         units      ='mol mol-1',                           &
+         dims       =MAPL_DimsHorzVert,                     &
+         vlocation  =MAPL_VlocationCenter,                  &
+         restart    =MAPL_RestartOptional,                  &
+         add2export =.true.,                                & !<-- is this what makes it available for HISTORY?
+         __RC__)
 
     !  Create a region mask import
     call MAPL_AddImportSpec(GC,                          &
@@ -1585,8 +1543,6 @@ contains
     !  ----------------------------------
     call ESMF_ConfigFindLabel(cfg,trim(species)//'_instances:',rc=status)
     VERIFY_(STATUS)
-
-    if (activeTotal) isActive = .false. ! Since we have an active total, set all other instances to passive
 
     do i = 1, nInst
        call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)

@@ -10,8 +10,8 @@ module types_mod
      real                            :: mw ! Molecular weight
      logical                         :: active = .true.  ! Assume active by default
      character(len=255)              :: name, species
-     integer                         :: index
-     integer                         :: ispecies
+     integer                         :: index ! The current index for this instance
+     integer                         :: ispecies ! The index for the species associated with this instance
      logical                         :: hasMask = .false.
      logical                         :: activeTotal = .false. ! Assume passive/diagnostic total
      integer                         :: imask(MAXMASKS) = -999 ! Up to MAXMASKS masks can be superimposed
@@ -31,6 +31,7 @@ module types_mod
 
   type meteorology ! met
      ! Imports
+     real, pointer, dimension(:,:)   :: area
      real, pointer, dimension(:,:)   :: pblh  
      real, pointer, dimension(:,:)   :: pco2   ! for OCN. currenly unused
      real, pointer, dimension(:,:)   :: ps    

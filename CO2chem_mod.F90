@@ -37,9 +37,13 @@ CONTAINS
 
     integer :: STATUS
 
+
     !  Initialize local variables
     !  --------------------------
     rc = 0
+
+    ! <<>> currently unused so lets just get out of here
+    return
 
     if (.not. associated(CO2inst) .or. size(CO2inst) .eq. 0) return ! Nothing to do
 

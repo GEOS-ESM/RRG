@@ -85,12 +85,7 @@ module utils_mod
       if (associated(tmp)) instance(1:n-1)    = tmp ! Pass the data back
       
       ! add the new instance info
-      ! 'total' is a special case
-      if (trim(name) .eq. 'total') then
-         instance(n)%name    = trim(gas)
-      else
-         instance(n)%name    = trim(gas)//'.'//trim(name)
-      endif
+      instance(n)%name    = trim(gas)//'_'//trim(name)
       instance(n)%species = trim(gas)
       instance(n)%active  = active
       instance(n)%index   = NINSTANCES

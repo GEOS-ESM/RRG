@@ -92,7 +92,9 @@ INITIAL DEVELOPMENT TASK OUTLINE
 
 1st REVISION DEVELOPMENT OUTLINE
 Currently in branch 'activetotal'
-* How to get an option for active/prognostic/independent species total?
+* <ABANDONED> How to get an option for active/prognostic/independent species total?
+<<>> For now, just defined an active total and give it all surface fluxes. Make
+     sure no other instances are active.
 Requirements
 ** All emissions are added to total
 ** Total has its own P/L computed
@@ -104,3 +106,5 @@ This can be done by forcing all instances to be 'passive' if active_total is .tr
 -- NOTE: this also diables the utility of the *.residual instance. This will no longer
    initialize the fields. Users will have to define a restart field for the total instance
    ... currently the total instance name is simply the name of the gas, e.g. CO, CO2, or CH4
+Current Status
+** Going to scrub 'aggregate' from the system and make 'total' a default instance

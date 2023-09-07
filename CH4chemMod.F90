@@ -78,18 +78,18 @@ contains
 
        !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
        k_  = 2.45E-12*exp(-1775./met%T)
-       loss = loss + k_*CH4*OH*cvfac
+       loss = loss + k_*CH4*OH!*cvfac
 
        !  Loss rate [m^3 s^-1] for Cl + CH4 => CO + products
        k_  = 7.10E-12*exp(-1270./met%T)
-       loss = loss + k_*CH4*Cl*cvfac
+       loss = loss + k_*CH4*Cl!*cvfac
 
        !  Loss rate [m^3 s^-1] for O(1D) + CH4 => CO + products
        k_ = 1.75E-10
-       loss = loss + k_*CH4*O1D*cvfac
+       loss = loss + k_*CH4*O1D!*cvfac
 
        ! Loss rate from photolysis: CH4 + hv => ...
-       loss = loss + JV*CH4
+!       loss = loss + JV*CH4
 
        CH4  => null()
        loss => null()

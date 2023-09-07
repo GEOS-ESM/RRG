@@ -2,16 +2,16 @@ esma_set_this ()
 
 set (srcs
     ${this}Mod.F90
-    CH4chem_mod.F90
-    COchem_mod.F90
-    CO2chem_mod.F90
-    diagnostics_mod.F90
+    CH4chemMod.F90
+    COchemMod.F90
+    CO2chemMod.F90
+    diagnosticsMod.F90
     geos_SimplePhotolysisMod.F90
-    global_mod.F90
-    integration_mod.F90
-    surface_mod.F90
-    types_mod.F90
-    utils_mod.F90
+    globalMod.F90
+    integrationMod.F90
+    surfaceMod.F90
+    typesMod.F90
+    utilsMod.F90
     )
 esma_add_library (${this}
   SRCS ${srcs}

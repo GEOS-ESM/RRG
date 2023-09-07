@@ -92,6 +92,21 @@ INITIAL DEVELOPMENT TASK OUTLINE
 
 1st REVISION DEVELOPMENT OUTLINE
 Currently in branch 'activetotal'
+** IN-PROGRESS CH4
+   GC-CH4 has 1 run method
+   If, no chem, no photo, no turb/moist
+   -- revisit: End Aug 2023
+   OK from restart if emis & chem off
+   -- Don't convert units from (kg/m2/s-1 to mol/mol/m2/s-1; test the I/O)
+      OK from zero with EDGARv7 emissions
+      
+   dCH4.nc.noNEGDIST.noDTM.blankRun1:
+   - the negative emissions are directly applied to the assoc instance rather than
+     redistributed
+   - no DTM
+   - RRG's Run1_ is executed, but does nothing. This synchronizes RRG's and GOCART's
+     Run methods. Before, with RRG's Run1_ commented out, RRG's Run2_ was being
+     run with GOCART's Run1_. So maybe a slight met or timing impact
 * <ABANDONED> How to get an option for active/prognostic/independent species total?
 <<>> For now, just defined an active total and give it all surface fluxes. Make
      sure no other instances are active.

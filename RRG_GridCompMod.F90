@@ -388,115 +388,115 @@ contains
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
     call MAPL_GetPointer(import,met%qtot, 'QTOT', __RC__)
 
-!XXXXXX! Get the instance data pointers
-!XXXXXX    do i=1,NINSTANCES
-!XXXXXX       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%name), __RC__)
-!XXXXXX       allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
-!XXXXXX       instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
-!XXXXXX    enddo
-!XXXXXX
-!XXXXXX!   Get pointers to the aggregates/totals
-!XXXXXX    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
-!XXXXXX    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
-!XXXXXX
-!XXXXXX    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
-!XXXXXX    if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
-!XXXXXX
-!XXXXXX    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
-!XXXXXX    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
-!XXXXXX
-!XXXXXX! ===============================================================
-!XXXXXX
-!XXXXXX! ===============================================================
-!XXXXXX!                   P R O C E S S  M A S K S
-!XXXXXX    if (first) then
-!XXXXXX       call ProcessExtdataMasks( IMPORT, __RC__ ) 
-!XXXXXX       first = .false.
-!XXXXXX    endif
-!XXXXXX
-!XXXXXX! ===============================================================
-!XXXXXX!                R U N  T H E  O P E R A T I O N S
-!XXXXXX!   Aggregate instances into the totals prior to operations
-!XXXXXX    call util_aggregate( RC )
-!XXXXXX
-!XXXXXX!   Fill pointers for surface fluxes
-!XXXXXX    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
-!XXXXXX
-!XXXXXX!   -- surface fluxes for all instances
-!XXXXXX    call surface_prodloss( RC )
-!XXXXXX
-!XXXXXX!   -- integration
-!XXXXXX    call integrate_forwardeuler( RC )
-!XXXXXX
-!XXXXXX!   -- post processing
-!XXXXXX    if (cntrl%strictMassBalance) call util_accumulatenegatives( RC )
-!XXXXXX
-!XXXXXX!   Aggregate instances into the totals after operations
-!XXXXXX    call util_aggregate( RC )
-!XXXXXX! ===============================================================
-!XXXXXX
-!XXXXXX! ===============================================================
-!XXXXXX!      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
-!XXXXXX! ===============================================================
-!XXXXXX    
-!XXXXXX    ! Set emission diagnostic
-!XXXXXX    call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
-!XXXXXX    if (associated(Ptr2d)) then
-!XXXXXX       call diag_sfcflux( 'CO2', Ptr2d, RC )
-!XXXXXX       Ptr2d => null()
-!XXXXXX    endif
-!XXXXXX    ! Set emission diagnostic
-!XXXXXX    call MAPL_GetPointer( export, Ptr2d, 'CH4_EM', __RC__ )
-!XXXXXX    if (associated(Ptr2d)) then
-!XXXXXX       call diag_sfcflux( 'CH4', Ptr2d, RC )
-!XXXXXX       Ptr2d => null()
-!XXXXXX    endif
-!XXXXXX    ! Set emission diagnostic
-!XXXXXX    call MAPL_GetPointer( export, Ptr2d, 'CO_EM', __RC__ )
-!XXXXXX    if (associated(Ptr2d)) then
-!XXXXXX       call diag_sfcflux( 'CO', Ptr2d, RC )
-!XXXXXX       Ptr2d => null()
-!XXXXXX    endif
-!XXXXXX
-!XXXXXX    !
-!XXXXXX   !call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
-!XXXXXX   !if (associated(Ptr3d)) then
-!XXXXXX   !   Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
-!XXXXXX   !   Ptr3d => null()
-!XXXXXX   !endif
-!XXXXXX   !
-!XXXXXX   !call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
-!XXXXXX   !if (associated(Ptr3d)) then
-!XXXXXX   !   Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
-!XXXXXX   !   Ptr3d => null()
-!XXXXXX   !endif
-!XXXXXX   !
-!XXXXXX   !call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
-!XXXXXX   !if (associated(Ptr3d)) then
-!XXXXXX   !   Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
-!XXXXXX   !   Ptr3d => null()
-!XXXXXX   ! endif
-!XXXXXX
-!XXXXXX! ===============================================================
-!XXXXXX!                            D O N E
-!XXXXXX!   Cleanup
-!XXXXXX!   Lots of memory leak potential here. Need to be thorough
-!XXXXXX    do i=1,NINSTANCES
-!XXXXXX       ! deallocate the prod/loss arrays for each instance
-!XXXXXX       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
-!XXXXXX       instances(i)%p%data3d => null()
-!XXXXXX    enddo
-!XXXXXX
-!XXXXXX    CO2_total => null(); CO_total => null(); CH4_total => null()
-!XXXXXX    do i=1,nspecies
-!XXXXXX       if (associated(aggregate(i)%q)) aggregate(i)%q => null()
-!XXXXXX    enddo
-!XXXXXX
-!XXXXXX    if (allocated(sfc_flux)) then
-!XXXXXX       do i=1,size(sfc_flux)
-!XXXXXX          if (associated(sfc_flux(i)%flux)) sfc_flux(i)%flux => null()
-!XXXXXX       enddo
-!XXXXXX    endif
+! Get the instance data pointers
+    do i=1,NINSTANCES
+       call MAPL_GetPointer(internal, instances(i)%p%data3d, trim(instances(i)%p%name), __RC__)
+       allocate( instances(i)%p%prod, instances(i)%p%loss, mold=instances(i)%p%data3d, __STAT__ ) ! allocate the prod/loss arrays for each instance
+       instances(i)%p%prod = 0.e0; instances(i)%p%loss = 0.e0
+    enddo
+
+!   Get pointers to the aggregates/totals
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+
+    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+
+    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
+    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+
+! ===============================================================
+
+! ===============================================================
+!                   P R O C E S S  M A S K S
+    if (first) then
+       call ProcessExtdataMasks( IMPORT, __RC__ ) 
+       first = .false.
+    endif
+
+! ===============================================================
+!                R U N  T H E  O P E R A T I O N S
+!   Aggregate instances into the totals prior to operations
+    call util_aggregate( RC )
+
+!   Fill pointers for surface fluxes
+    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
+
+!   -- surface fluxes for all instances
+    call surface_prodloss( RC )
+
+!   -- integration
+    call integrate_forwardeuler( RC )
+
+!   -- post processing
+    if (cntrl%strictMassBalance) call util_accumulatenegatives( RC )
+
+!   Aggregate instances into the totals after operations
+    call util_aggregate( RC )
+! ===============================================================
+
+! ===============================================================
+!      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
+! ===============================================================
+    
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO2', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CH4', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+    ! Set emission diagnostic
+    call MAPL_GetPointer( export, Ptr2d, 'CO_EM', __RC__ )
+    if (associated(Ptr2d)) then
+       call diag_sfcflux( 'CO', Ptr2d, RC )
+       Ptr2d => null()
+    endif
+
+    !
+   !call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__) 
+   !if (associated(Ptr3d)) then
+   !   Ptr3d = (CO2_total*MAPL_AIRMW/44.0098)/(1.e0 - met%qtot)
+   !   Ptr3d => null()
+   !endif
+   !
+   !call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__) 
+   !if (associated(Ptr3d)) then
+   !   Ptr3d = (CH4_total*MAPL_AIRMW/16.0422)/(1.e0 - met%qtot)
+   !   Ptr3d => null()
+   !endif
+   !
+   !call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__) 
+   !if (associated(Ptr3d)) then
+   !   Ptr3d = (CO_total*MAPL_AIRMW/28.0104)/(1.e0 - met%qtot)
+   !   Ptr3d => null()
+   ! endif
+
+! ===============================================================
+!                            D O N E
+!   Cleanup
+!   Lots of memory leak potential here. Need to be thorough
+    do i=1,NINSTANCES
+       ! deallocate the prod/loss arrays for each instance
+       deallocate( instances(i)%p%prod, instances(i)%p%loss, __STAT__ )
+       instances(i)%p%data3d => null()
+    enddo
+
+    CO2_total => null(); CO_total => null(); CH4_total => null()
+    do i=1,nspecies
+       if (associated(aggregate(i)%q)) aggregate(i)%q => null()
+    enddo
+
+    if (allocated(sfc_flux)) then
+       do i=1,size(sfc_flux)
+          if (associated(sfc_flux(i)%flux)) sfc_flux(i)%flux => null()
+       enddo
+    endif
     RETURN_(ESMF_SUCCESS)
 
   end subroutine GridCompRun1
@@ -688,14 +688,6 @@ contains
 !    else
        call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
 !    endif
-
-!<<>>
-!   Fill pointers for surface fluxes
-    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
-
-!   -- surface fluxes for all instances
-    call surface_prodloss( RC )
-!<<>>
 
     if (nCO2 .gt. 0) then
        CO2ptr => CO2_total

@@ -712,7 +712,7 @@ contains
 
     call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr,       RC )
     call CO2_prodloss( CO2, OH, COptr,                                             RC ) ! Currently nothing in here. Just in case... 
-!    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
+    call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                                 RC )
 
     CH4ptr => null()
     CO2ptr => null()

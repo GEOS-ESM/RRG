@@ -107,6 +107,11 @@ Currently in branch 'activetotal'
    - RRG's Run1_ is executed, but does nothing. This synchronizes RRG's and GOCART's
      Run methods. Before, with RRG's Run1_ commented out, RRG's Run2_ was being
      run with GOCART's Run1_. So maybe a slight met or timing impact
+
+     IT LOOKS LIKE THE ISSUE IS NEGATIVE SURFACE EXCHANGE (surface uptake)
+     ONat is the only source that has negative surface exchange. If I turn ONAT off.
+     dCH4 is very small (O(-11))
+
 * <ABANDONED> How to get an option for active/prognostic/independent species total?
 <<>> For now, just defined an active total and give it all surface fluxes. Make
      sure no other instances are active.

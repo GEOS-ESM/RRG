@@ -362,6 +362,12 @@ module utils_mod
       
     end subroutine util_masksparsity
 
+    subroutine util_dope()
+    end subroutine util_dope
+
+    subroutine util_undope()
+    end subroutine util_undope
+
     function is_numeric(string)
       implicit none
       character(len=*), intent(in) :: string

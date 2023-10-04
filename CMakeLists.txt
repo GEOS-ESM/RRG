@@ -1,7 +1,7 @@
 esma_set_this ()
 
 set (srcs
-    ${this}Mod.F90
+    ${this}_GridCompMod.F90
     CH4chemMod.F90
     COchemMod.F90
     CO2chemMod.F90

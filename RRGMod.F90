@@ -591,7 +591,7 @@ contains
 !   -----------------------------------
     call MAPL_GetPointer(import,met%pblh,   'ZPBL', __RC__)
     call MAPL_GetPointer(import,met%T,      'T',    __RC__)
-    call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
+    call MAPL_GetPointer(import,met%zle,  'ZLE',    __RC__)
     call MAPL_GetPointer(import,met%ple,    'PLE',  __RC__)
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
     call MAPL_GetPointer(import,met%q,         'Q', __RC__)

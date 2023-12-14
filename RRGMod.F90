@@ -1002,7 +1002,7 @@ contains
 
     __Iam__('RegisterInstanceWithMAPL')
 
-    friendlies = 'DYNAMICS:TURBULENCE:MOIST'
+    friendlies = 'DYNAMICS:TURBULENCE:MOIST'!:TURBULENCE:MOIST'
 
     ! Toggle whether or not to advect/mix/convect
     if (present(DTM)) then
@@ -1531,8 +1531,6 @@ contains
     nInst = ESMF_ConfigGetLen(cfg,label=trim(species)//'_instances:',rc=status)
     VERIFY_(STATUS)
 
-    if (nInst .eq. 0) return
-
     !  define the total/aggregate field
     call MAPL_AddInternalSpec(gc,                           &
          short_name =trim(species),                         &
@@ -1558,6 +1556,7 @@ contains
     call ESMF_ConfigFindLabel(cfg,trim(species)//'_instances:',rc=status)
     VERIFY_(STATUS)
 
+    if (nInst .ne. 0) then
     do i = 1, nInst
        call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
        VERIFY_(STATUS)
@@ -1570,6 +1569,7 @@ contains
        call Util_AddInstance( GI, trim(inst_name), trim(species), MW, isActive, status)
        VERIFY_(STATUS)
     end do
+    endif
 
     ! If there are instances, then define an active residual by default
     ! ASSUMPTION: a species' residual is always the last instance 

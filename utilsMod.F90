@@ -1,6 +1,7 @@
 module utils_mod
 
   use types_mod
+  use ESMF
 
   implicit none
   public
@@ -15,7 +16,7 @@ module utils_mod
 
       integer i
       status = 0
-      
+
       do i=1,NINSTANCES
          where(instances(i)%p%data3d .lt. 0.e0)
             ! Add the negative to the mass tracker
@@ -34,7 +35,7 @@ module utils_mod
       use global_mod, only : instances, aggregate
       use global_mod, only : species, nspecies
 
-      ! This routine 
+      ! This routine
       ! 1) adds an instance to a blank or existing
       !    gas_instance object.
       ! 2) increments and manages the total instances object 'instances'
@@ -42,7 +43,7 @@ module utils_mod
       !    associated with instances
       !
       ! HISTORY:
-      ! Dec. 9, 2022: M. Long - first pass. 
+      ! Dec. 9, 2022: M. Long - first pass.
 
       ! arguments
       character(*), intent(in)       :: name, gas
@@ -83,7 +84,7 @@ module utils_mod
 
       ! repopulate the incremented instance with the old data
       if (associated(tmp)) instance(1:n-1)    = tmp ! Pass the data back
-      
+
       ! add the new instance info
       instance(n)%name    = trim(gas)//'_'//trim(name)
       instance(n)%species = trim(gas)
@@ -105,7 +106,7 @@ module utils_mod
          allocate(aggregate(nspecies))
          species(1) = gas
          instance(n)%ispecies = nspecies
-      else ! 
+      else !
          found = .false.
          do i=1,nspecies
             if (trim(gas) .eq. trim(species(i))) then
@@ -138,17 +139,17 @@ module utils_mod
       if (NINSTANCES .eq. 1) then
          allocate(instances(NINSTANCES), stat=status)
          instances(NINSTANCES)%p => instance(n)
-      else   
+      else
          allocate(atmp(NINSTANCES), stat=status)
          do i=1,NINSTANCES-1
             atmp(i) = instances(i)
          enddo
          atmp(NINSTANCES)%p => instance(n)
-         
+
          ! --increment the global object
          if (allocated(instances)) deallocate(instances, stat=status)
          allocate(instances(NINSTANCES), stat=status)
-         
+
          ! Pass the saved data back
          do i=1,NINSTANCES
             instances(i) = atmp(i)
@@ -157,15 +158,15 @@ module utils_mod
          ! -- cleanup
          deallocate(atmp, stat=status)
       endif
-      
+
       return
 
     end subroutine util_addinstance
 
-    subroutine util_addsurfaceflux( pair, name, d, p, scalefactor, status)
+    subroutine util_addsurfaceflux( pair, name, d, p, scalefactor, status )
 
       use global_mod
-       
+
       character(*),                intent(in)    :: pair
       character(*),                intent(in)    :: name
       logical,                     intent(in)    :: d, p
@@ -255,17 +256,18 @@ module utils_mod
       use global_mod, only : instances, aggregate, NINSTANCES, nspecies
 
       integer, intent(out) :: RC
-      
+
       integer :: i, n
 
-      RC = 0
+      RC = ESMF_SUCCESS
 
       do n=1,nspecies
+         if (.not. associated(aggregate(n)%q)) cycle
          aggregate(n)%q = 0.e0
          do i=1,NINSTANCES
             if (instances(i)%p%ispecies .eq. n .and. instances(i)%p%active) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
-         enddo
-      enddo
+         end do
+      end do
 
     end subroutine util_aggregate
 
@@ -277,7 +279,7 @@ module utils_mod
       integer :: i, n
       character(20) :: active
 
-      ! 1) Check that the NINSTANCES equals the total number of 
+      ! 1) Check that the NINSTANCES equals the total number of
       !    instances in object
       n = size(in)
       if (NINSTANCES .eq. n) then
@@ -359,7 +361,7 @@ module utils_mod
             endif
          enddo
       enddo
-      
+
     end subroutine util_masksparsity
 
     subroutine util_dope()

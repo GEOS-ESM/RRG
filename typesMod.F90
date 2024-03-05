@@ -1,7 +1,7 @@
 module types_mod
   implicit none
   public
-  
+
   integer, PARAMETER                 :: MAXMASKS = 10
 
   type gas_instance
@@ -32,19 +32,19 @@ module types_mod
   type meteorology ! met
      ! Imports
      real, pointer, dimension(:,:)   :: area
-     real, pointer, dimension(:,:)   :: pblh  
+     real, pointer, dimension(:,:)   :: pblh
      real, pointer, dimension(:,:)   :: pco2   ! for OCN. currenly unused
-     real, pointer, dimension(:,:)   :: ps    
+     real, pointer, dimension(:,:)   :: ps
      real, pointer, dimension(:,:)   :: sss    ! for OCN. currenly unused
      real, pointer, dimension(:,:)   :: sst    ! for OCN. currenly unused
-     real, pointer, dimension(:,:)   :: u10m  
-     real, pointer, dimension(:,:)   :: v10m  
-     real, pointer, dimension(:,:,:) :: t     
+     real, pointer, dimension(:,:)   :: u10m
+     real, pointer, dimension(:,:)   :: v10m
+     real, pointer, dimension(:,:,:) :: t
      real, pointer, dimension(:,:,:) :: delp
      real, pointer, dimension(:,:,:) :: ple
-     real, pointer, dimension(:,:,:) :: zle   
+     real, pointer, dimension(:,:,:) :: zle
      real, pointer, dimension(:,:,:) :: rho    ! air density
-     real, pointer, dimension(:,:,:) :: q     
+     real, pointer, dimension(:,:,:) :: q
      real, pointer, dimension(:,:,:) :: qtot   ! Calculated locally. Not currently an available import.
 
      ! Computed quantities
@@ -68,7 +68,7 @@ module types_mod
      ! declaring the integers at pointers permits cleanliness throughout
      integer                        :: im,jm,km
      real                           :: CDT         ! chemistry timestep (secs)
-     real, pointer, dimension(:,:)  :: lats 
+     real, pointer, dimension(:,:)  :: lats
      real, pointer, dimension(:,:)  :: lons
      integer                        :: HDT         ! model timestep (secs)
      integer                        :: NYMD, NHMS
@@ -76,7 +76,7 @@ module types_mod
      real                           :: AIRMW
      real                           :: RadToDeg ! Conversion factor
   end type parameters
-  
+
   type toggles
      logical                        :: strictMassBalance = .false. ! default false
   end type toggles

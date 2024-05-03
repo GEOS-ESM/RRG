@@ -121,7 +121,7 @@ CONTAINS
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?
     !  ----------------------------------------------------------------------------
-    prod = prod + JV1*400.e-6    ! 1st order (1/s); Fixed CO2 for testing
+!    prod = prod + JV1*400.e-6    ! 1st order (1/s); Fixed CO2 for testing
 !    prod = prod + JV1*CO2    ! 1st order (1/s)
 !    prod = prod + JV2*CH4    ! 1st order (1/s)
 

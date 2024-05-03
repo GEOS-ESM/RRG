@@ -1046,7 +1046,7 @@ contains
 
     __Iam__('RegisterInstanceWithMAPL')
 
-    friendlies = 'DYNAMICS:TURBULENCE:MOIST'!:TURBULENCE:MOIST'
+    friendlies = 'DYNAMICS:TURBULENCE:MOIST'
 
     ! Toggle whether or not to advect/mix/convect
     if (present(DTM)) then
@@ -1059,7 +1059,7 @@ contains
          units      = 'mol mol-1', &
          dims       = MAPL_DimsHorzVert, &
          vlocation  = MAPL_VlocationCenter, &
-         restart    = MAPL_RestartRequired, &
+!//         restart    = MAPL_RestartRequired, &
          friendlyto = trim(friendlies),     &
          add2export = .true., & !<-- is this what makes it available for HISTORY?
          __RC__)
@@ -1620,14 +1620,6 @@ contains
     end do
     endif
 
-    !! If there are instances, then define an active residual by default
-    !! ASSUMPTION: a species' residual is always the last instance
-    !call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
-    !VERIFY_(STATUS)
-    !nInst = nInst+1
-    !call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
-    !VERIFY_(STATUS)
-
     !  Get passive instances and toggle them
     n = 0
     call ESMF_ConfigFindLabel(cfg,label=trim(species)//'_passive_instances:',isPresent=ispresent,rc=status)
@@ -1665,6 +1657,16 @@ contains
           end do
        end if
     end if
+
+    ! If there are instances, then define an active residual by default
+    ! ASSUMPTION: a species' residual is always the last instance
+    if (nInst .ne. 0) then
+       call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
+       VERIFY_(STATUS)
+       nInst = nInst+1
+       call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
+       VERIFY_(STATUS)
+    endif
 
    !  Create a region mask import if masks are required
    call ESMF_ConfigFindLabel( cfg, trim(species)//'_masks::', isPresent=isPresent, rc=status )

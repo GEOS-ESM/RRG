@@ -54,13 +54,13 @@ module diagnostics
          inst     = sfc_flux(i)%index                  ! Which associated instance?
          is_spc   = instances(inst)%p%ispecies == ispc ! Is this instance the right species?
          if (.not. is_spc) cycle                       !    if not cycle
+         if (.not. associated(sfc_flux(i)%flux)) cycle ! The FLUX isn't associated. This is a failsafe
          is_actv  = instances(inst)%p%active           ! Is it an active instance?
          has_mask = instances(inst)%p%hasMask
 
          ! Currently only summing over active instances.
          if (      has_mask .and. is_actv .and. is_spc) FLX = FLX + sfc_flux(i)%flux*instances(inst)%p%mask
          if (.not. has_mask .and. is_actv .and. is_spc) FLX = FLX + sfc_flux(i)%flux
-         
       enddo
 
     end subroutine diag_sfcflux

@@ -760,15 +760,6 @@ contains
 ! ===============================================================
 !      C O M P U T E  A N D  P A S S  D I A G N O S T I C S
 
-!<<>>
-    ! Set emission diagnostic
-    call MAPL_GetPointer( export, Ptr2d, 'CO2_EM', __RC__ )
-    if (associated(Ptr2d)) then
-       call diag_sfcflux( 'CO2', Ptr2d, RC )
-       Ptr2d => null()
-    endif
-!<<>>
-
     call MAPL_GetPointer( export, Ptr3d, 'CO2_ProdLoss', __RC__ )
     if (associated(Ptr3d)) then
        call diag_prodloss( CO2(:), Ptr3d, RC )
@@ -1641,7 +1632,7 @@ contains
                 ! Search for name in list of active instances
                 if (index(GI(j)%name,trim(inst_name)) .gt. 0) then
                    found = .true.
-                   ! user configured rc files poorly, report and die
+                   ! user configured rc files poorly. report and die
                    if (MAPL_am_I_root()) write(*,*) 'RRG: '//trim(species)//' passive instance entry already declared as an active instance'
                    VERIFY_(-1)
                 end if
@@ -1659,7 +1650,7 @@ contains
     end if
 
     ! If there are instances, then define an active residual by default
-    ! ASSUMPTION: a species' residual is always the last instance
+    ! A species' residual is always the last instance
     if (nInst .ne. 0) then
        call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
        VERIFY_(STATUS)

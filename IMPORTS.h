@@ -95,6 +95,38 @@
        VLOCATION  = MAPL_VLocationCenter,                  &
        __RC__)
 
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'CO_O1D',                              &
+       LONG_NAME  = 'singlet O',                           &
+       UNITS      = 'molecules cm-3',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'CO_Cl',                              &
+       LONG_NAME  = '',                           &
+       UNITS      = 'mol mol-1',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'CO_OH',                              &
+       LONG_NAME  = '',                           &
+       UNITS      = 'mol mol-1',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
+    call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'CO_CH4',                              &
+       LONG_NAME  = '',                           &
+       UNITS      = 'mol mol-1',                      &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       __RC__)
+
 ! 2-D
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'AREA',                               &

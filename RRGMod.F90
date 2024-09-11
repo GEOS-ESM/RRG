@@ -238,7 +238,7 @@ contains
 
 !   Set some quantities
 !   -------------------
-    params%AVO      = MAPL_AVOGAD*1e-3 ! Why is AVO in mcl/kmol?
+    params%AVO      = MAPL_AVOGAD*1.000d-3 ! Why is AVO in mcl/kmol?
     params%AIRMW    = MAPL_AIRMW
     grav            = MAPL_GRAV
     params%RadToDeg = 180./MAPL_PI
@@ -567,7 +567,7 @@ contains
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
     real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
-    real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D
+    real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D, CO_O1D, CO_OH, CO_Cl
     real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
     real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
     real(ESMF_KIND_R4), allocatable :: SLR(:,:)
@@ -623,6 +623,9 @@ contains
     CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
     CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
     CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
+    CALL MAPL_GetPointer(import,  CO_OH,   'CO_OH', __RC__)
+    CALL MAPL_GetPointer(import,  CO_Cl,   'CO_Cl', __RC__)
+    CALL MAPL_GetPointer(import, CO_O1D,  'CO_O1D', __RC__)
 
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
@@ -713,13 +716,13 @@ contains
        !call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__) ! Sourish
 !    endif
 
-   if (nCO .gt. 0) then
-      if (nCH4 .gt. 0) then
-         CH4ptr => CH4_total
-      else
+!   if (nCO .gt. 0) then
+!      if (nCH4 .gt. 0) then
+!         CH4ptr => CH4_total
+!      else
          call MAPL_GetPointer(import, CH4ptr, 'CO_CH4',__RC__)
-      end if
-   end if
+!      end if
+!   end if
 
    ! If we want to run CO2 photolysis at some point...
    if (nCO2 .gt. 0) CO2ptr => CO2_total
@@ -737,8 +740,26 @@ contains
     !else
        !! Need an external CO source. call MAPL_GetPointer(import, COptr, 'CO_?',__RC__)
     !endif
+!>>>! ===============================================================
+!>>>!                   P R O C E S S  M A S K S
+!>>>    if (first) then
+!>>>       call ProcessExtdataMasks( IMPORT, __RC__ )
+!>>>       first = .false.
+!>>>    endif
+!>>>
+!>>>! ===============================================================
+!>>>!                R U N  T H E  O P E R A T I O N S
+!>>>!   Aggregate instances into the totals prior to operations
+!>>>!    call util_aggregate( RC )
+!>>>!    VERIFY_(RC)
+!>>>
+!>>>!   Fill pointers for surface fluxes
+!>>>    if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
+!>>>
+!>>>!   -- surface fluxes for all instances
+!>>>    call surface_prodloss( RC )
 !   ==================================================
-    if (nCO  .gt. 0) call  CO_prodloss(  CO, OH, O1D, Cl, CO2photj, CH4photj, CH4ptr, CO2ptr, RC )
+    if (nCO  .gt. 0) call  CO_prodloss(  CO, CO_OH, CO_O1D, CO_Cl, CO2photj, CH4photj, CH4ptr, CO2ptr, RC )
     if (nCO2 .gt. 0) call CO2_prodloss( CO2, OH, COptr,                                       RC ) ! Currently nothing in here. Just in case...
     if (nCH4 .gt. 0) call CH4_prodloss( CH4, OH, O1D, Cl, CH4photj,                           RC )
 
@@ -746,6 +767,7 @@ contains
     CO2ptr => null()
     COptr  => null()
     TRptr  => null()
+
 
 !   -- integration
     call integrate_forwardeuler( RC )
@@ -915,7 +937,7 @@ contains
 
    ! Surface fluxes
    do i=1,size(sfc_flux)
-      if (associated(sfc_flux(i)%flux)) deallocate(sfc_flux(i)%flux)
+      if (associated(sfc_flux(i)%flux)) nullify(sfc_flux(i)%flux)
    enddo
    if (allocated(sfc_flux)) deallocate(sfc_flux)
 

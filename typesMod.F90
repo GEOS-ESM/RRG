@@ -79,6 +79,7 @@ module types_mod
 
   type toggles
      logical                        :: strictMassBalance = .false. ! default false
+     logical                        :: wellmixed_sfcexch = .true. ! Assume well-mixed atmosphere by default
   end type toggles
 
 end module types_mod

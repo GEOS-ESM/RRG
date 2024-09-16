@@ -135,6 +135,12 @@ contains
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
        VERIFY_(STATUS)
     endif
+    call ESMF_ConfigFindLabel(cfg,label='wellMixedSurfaceExchange:',isPresent=present,rc=status)
+    VERIFY_(STATUS)
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg,cntrl%wellmixed_sfcexch,rc=status)
+       VERIFY_(STATUS)
+    endif
 
 !   Load instances
 !   --------------

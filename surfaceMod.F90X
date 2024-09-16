@@ -1,3 +1,5 @@
+! This was the original code for the surface exchange that assumed a NOT
+! well-mixed atmosphere and simply did exchanges directly by instance.
 MODULE Surface_Mod
 
 ! !USES:

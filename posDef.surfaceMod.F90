@@ -65,6 +65,7 @@ contains
        if (.not. inst%hasmask) then
 !      -- N O  M A S K --
        if (sfc_flux(n)%pblmix) then
+!      -- H A S  P B L M I X --
           ! ASSUMPTION: any flux that is mixed in the PBL will be positive 
           if (sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
@@ -73,7 +74,8 @@ contains
                                      sfc_flux(n)%scalefactor * grav / met%delp(:,:,k) * &
                                      params%airmw / inst%mw
              end do
-          else
+          endif
+          if (.not. sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + &
                                      sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
@@ -81,7 +83,9 @@ contains
                                      params%airmw / inst%mw
              end do
           endif
-       else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
+       endif ! Non-PBL may be positive or negative (e.g. OCN, NEP)
+       if (.not. sfc_flux(n)%pblmix) then
+!      -- N O  P B L M I X --
           k = params%km ! at the surface
           if (sfc_flux(n)%diurnal) then
              do j=1,params%jm
@@ -98,21 +102,31 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
-                   ! Loop over all instances
-                   if (inst%active) then
-                      do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
-                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
-                      enddo
+                   if (cntrl%wellmixed_sfcexch) then
+                      fdC = (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
+                      ! Loop over all instances
+                      if (inst%active) then
+                         do nst=1,NINSTANCES
+                            if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
+                                 instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers!
+                         enddo
+                      endif
+                      if (.not. inst%active) then ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                         inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                      endif
                    endif
-                   if (.not. inst%active) then ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
-                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   if (.not. cntrl%wellmixed_sfcexch) then
+                         inst%loss(i,j,k) = inst%loss(i,j,k) -  &
+                                                      sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
+                                                      sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                                      params%airmw / inst%mw
                    endif
                 endif
              enddo
              enddo
-          else
+          endif
+!         -- N O  P B L M I X -- N O  D I U R N A L --
+          if (.not. sfc_flux(n)%diurnal) then
              do j=1,params%jm
              do i=1,params%im
                 ! Source term?
@@ -126,22 +140,32 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0.e0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
-                   if (inst%active) then
-                   ! Active instance? Loop over all instances in the aggregate
-                      do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
-                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-                      enddo
-                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
-                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   if (cntrl%wellmixed_sfcexch) then
+                      fdC = (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
+                      if (inst%active) then
+                         ! Active instance? Loop over all instances in the aggregate
+                         do nst=1,NINSTANCES
+                            if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
+                                 instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                         enddo
+                      endif ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                      if (.not. inst%active) then
+                         inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                      endif
+                   endif
+                   if (.not. cntrl%wellmixed_sfcexch) then
+                         inst%loss(i,j,k) = inst%loss(i,j,k) - &
+                                        sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                        params%airmw / inst%mw
                    endif
                 endif
              enddo
              enddo
           endif
        endif
-       else
+       endif
+
+       if (inst%hasmask) then
 !      -- H A S  M A S K --
 !  As of now, mask operations are not sparse. The full array is still processed
 !  even if theres a multiply by zero. Implementing sparsity would, with only a few masks
@@ -156,7 +180,8 @@ contains
                                      sfc_flux(n)%scalefactor * grav / met%delp(:,:,k)* &
                                      params%airmw / inst%mw
              end do
-          else
+          endif
+          if (.not. sfc_flux(n)%diurnal) then
              do k=minPBL,params%km
                 inst%prod(:,:,k)   = inst%prod(:,:,k) + inst%mask(:,:) * &
                                      sfc_flux(n)%flux(:,:) * fPBL(:,:,k) * &
@@ -164,7 +189,8 @@ contains
                                      params%airmw / inst%mw
              end do
           endif
-       else ! Non-PBL may be positive or negative (e.g. OCN, NEP)
+       endif ! Non-PBL may be positive or negative (e.g. OCN, NEP)
+       if (.not. sfc_flux(n)%pblmix) then
           k = params%km ! at the surface
           if (sfc_flux(n)%diurnal) then
              do j=1,params%jm
@@ -181,20 +207,30 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
-                   if (inst%active) then
-                   ! Active instance? Loop over all instances in the aggregate
-                      do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
-                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-                      enddo
-                   else ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
-                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                   if (cntrl%wellmixed_sfcexch) then
+                      fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * fDNL(i,j) * sfc_flux(n)%scalefactor * grav / met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
+                      if (inst%active) then
+                         ! Active instance? Loop over all instances in the aggregate
+                         do nst=1,NINSTANCES
+                            if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
+                                 instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                         enddo
+                      endif ! not active, only remove the fraction of this instance (inst%q/aggregate%q)
+                      if (.not. inst%active) then
+                         inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*inst%data3d(i,j,k)
+                      endif
+                   endif
+                   if (.not. cntrl%wellmixed_sfcexch) then
+                      inst%loss(i,j,k) = inst%loss(i,j,k) - inst%mask(i,j) * &
+                                                  sfc_flux(n)%flux(i,j) * fDNL(i,j) * &
+                                                  sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                                  params%airmw / inst%mw
                    endif
                 endif
              enddo
              enddo
-          else
+          endif
+          if (.not. sfc_flux(n)%diurnal) then
              do j=1,params%jm
              do i=1,params%im
                 ! Source term?
@@ -210,15 +246,24 @@ contains
                 ! Don't branch. Just re-ask 'if'
                 spc = inst%ispecies ! Species index
                 if (sfc_flux(n)%flux(i,j) .lt. 0 .and. aggregate(spc)%q(i,j,k).gt.0.e0) then ! Sink. Removes aggregate, not just one instance
-                   fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
-                   if (inst%active) then
-                   ! Active instance? Loop over all instances in the aggregate
-                      do nst=1,NINSTANCES
-                         if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
-                              instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
-                      enddo
-                   else ! not active, only remove this instance
-                      inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*aggregate(spc)%q(i,j,k)!inst%data3d(i,j,k)
+                   if (cntrl%wellmixed_sfcexch) then
+                      fdC = inst%mask(i,j) * (sfc_flux(n)%flux(i,j) * sfc_flux(n)%scalefactor * grav /  met%delp(i,j,k)) / aggregate(spc)%q(i,j,k) * params%airmw / inst%mw
+                      if (inst%active) then
+                         ! Active instance? Loop over all instances in the aggregate
+                         do nst=1,NINSTANCES
+                            if (instances(nst)%p%ispecies .eq. spc .and. instances(nst)%p%active) &
+                                 instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k)-fdC*instances(nst)%p%data3d(i,j,k) ! Pay attention to the sign! Losses should still be stored as positive numbers
+                         enddo
+                      endif ! not active, only remove this instance
+                      if (.not. inst%active) then
+                         inst%loss(i,j,k) = inst%loss(i,j,k)-fdC*aggregate(spc)%q(i,j,k)!inst%data3d(i,j,k)
+                      endif
+                   endif
+                   if (.not. cntrl%wellmixed_sfcexch) then
+                      inst%loss(i,j,k) = inst%loss(i,j,k) - inst%mask(i,j) * &
+                                                  sfc_flux(n)%flux(i,j) * &
+                                                  sfc_flux(n)%scalefactor * grav / met%delp(i,j,k) * &
+                                                  params%airmw / inst%mw
                    endif
                 endif
              enddo

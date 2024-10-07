@@ -206,7 +206,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     character (len=255)                  :: name, photFile
-    type (MAPL_MetaComp),      pointer   :: MAPL
+    type (MAPL_MetaComp),      pointer   :: MAPL_
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
     type (ESMF_Config)                   :: cfg, universal_cfg
@@ -228,7 +228,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+    call MAPL_GetObjectFromGC (GC, MAPL_, __RC__)
 
 !   Get dimensions
 !   ---------------
@@ -239,8 +239,8 @@ contains
 
 !   Get DTs
 !   -------
-    call MAPL_GetResource(mapl, params%HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, params%CDT, Label='GOCART_DT:', default=real(params%HDT), __RC__)
+    call MAPL_GetResource(mapl_, params%HDT, Label='RUN_DT:', __RC__)
+    call MAPL_GetResource(mapl_, params%CDT, Label='GOCART_DT:', default=real(params%HDT), __RC__)
 
 !   Set some quantities
 !   -------------------
@@ -264,7 +264,7 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
+    call MAPL_Get ( mapl_, INTERNAL_ESMF_STATE = internal, &
                          LONS = params%LONS, &  ! Radians
                          LATS = params%LATS, &  ! Radians
                          INTERNALspec = INTERNALspec, &
@@ -347,7 +347,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
+    type (MAPL_MetaComp), pointer     :: mapl_
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
@@ -375,12 +375,12 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+    call MAPL_GetObjectFromGC (GC, mapl_, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
-    call MAPL_Get (mapl, RUNALARM=ALARM, __RC__)
+    call MAPL_Get (mapl_, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl_, RUNALARM=ALARM, __RC__)
 
 !   Get current time
 !   -----------------------------------
@@ -558,7 +558,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
+    type (MAPL_MetaComp), pointer     :: mapl_
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
@@ -594,12 +594,12 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+    call MAPL_GetObjectFromGC (GC, mapl_, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
-    call MAPL_Get (mapl, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
+    call MAPL_Get (mapl_, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl_, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
 !   Get current time
 !   -----------------------------------

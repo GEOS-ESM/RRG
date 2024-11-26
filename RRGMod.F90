@@ -402,7 +402,7 @@ contains
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
     call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
-!    call MAPL_GetPointer(import,met%qtot, 'QTOT', __RC__)
+    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -775,19 +775,19 @@ contains
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total                   )/(1.e0 - (met%q+met%qctot)
+       Ptr3d = (CO2_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CH4_total                   )/(1.e0 - met%q+met%qctot)
+       Ptr3d = (CH4_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CO_total                   )/(1.e0 - met%q+met%qctot)
+       Ptr3d = (CO_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
@@ -1270,23 +1270,23 @@ contains
 
     species = trim(instance(1)%species)
 
-   need_to_read_mask = .false.
-   do i = 1, size(instance)
-      need_to_read_mask = need_to_read_mask .or. instance(i)%hasmask
-   end do
-   if (.not. need_to_read_mask) return
+!!>>    need_to_read_mask = .false.
+!!>>    do i = 1, size(instance)
+!!>>       need_to_read_mask = need_to_read_mask .or. instance(i)%hasmask
+!!>>    end do
+!!>>    if (.not. need_to_read_mask) return
 
     !! Read the table in config
-    !call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
-    !VERIFY_(status)
-    !if (.not. isPresent) then
-      !do i = 1, size(instance)
-         !instance(i)%hasmask = .false.
-      !end do
-      !return
-    !end if
-    !call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
-    !VERIFY_(STATUS)
+    call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
+    VERIFY_(status)
+    if (.not. isPresent) then
+      do i = 1, size(instance)
+         instance(i)%hasmask = .false.
+      end do
+      return
+    end if
+    call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
+    VERIFY_(STATUS)
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
     VERIFY_(status)
 

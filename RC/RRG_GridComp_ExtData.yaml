@@ -1,0 +1,213 @@
+Collections:
+  RRG_0.5x0.5deg_perturb_6h_90x200step_%y4.nc:
+    template: /home/mslong1/G2Gdev/Data/perturb/0.5x0.5deg_perturb_6h_90x200step_%y4.nc
+  RRG_ARCTAS.region_mask.x540_y361.2008.nc:
+    template: ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+  RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc:
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/fluxes/CH4/v2023.1/EDGARv7/EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+  RRG_LPJ-emis_ch4.x720_y360.%y4%m2.nc:
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/fluxes/CH4/v2023.1/LPJ/LPJ-emis_ch4.x720_y360.%y4%m2.nc
+  RRG_lofi-v20.x576_y361.3hrly.%y4%m2.nc:
+    template: /discover/nobackup/bweir/fluxes/CO2/LoFI/v20/3hrly/lofi-v20.x576_y361.3hrly.%y4%m2.nc
+  RRG_lofi-v20.x576_y361.daily.%y4.nc:
+    template: /discover/nobackup/bweir/fluxes/CO2/LoFI/v20/daily/lofi-v20.x576_y361.daily.%y4.nc
+  RRG_medgar-v50.emis_co.x3600_y1800.%y4%m2.nc:
+    template: /discover/nobackup/bweir/fluxes/carbon/v2020/CO/mEDGAR/medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
+  RRG_merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc:
+    template: /discover/nobackup/bweir/fluxes/carbon/v2020/deprecated/CO/merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
+  RRG_merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc:
+    template: /discover/nobackup/bweir/fluxes/carbon/v2020/deprecated/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+    valid_range: "2010-01-01T00:00:00/2019-12-31T24:00:00"
+  RRG_ner.lofi-v20.x576_y361.3hrly.%y4%m2.nc:
+    template: /home/mslong1/G2Gdev/Data/LoFI/ner.lofi-v20.x576_y361.3hrly.%y4%m2.nc
+  RRG_qfed2.emis_ch4.061.%y4%m2%d2.nc4:
+    template: /discover/nobackup/projects/gmao/share/gmao_ops/fvInput/ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_ch4.061.%y4%m2%d2.nc4
+  RRG_qfed2.emis_co.061.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_co.061.%y4%m2%d2.nc4
+  RRG_qfed2.emis_co2.006.%y4%m2%d2.nc4:
+    template: ExtData/PIESA/sfc/QFED/v2.5r1/0.1/Y%y4/M%m2/qfed2.emis_co2.006.%y4%m2%d2.nc4
+  RRG_ONat-emis_ch4.x360_y180.%y4%m2.nc:
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/fluxes/CH4/v2023.1/misc/ONat-emis_ch4.x360_y180.%y4%m2.nc
+#  RRG_ARCTAS.region_mask.x540_y361.2008.nc:
+#    template: /home/mslong1/G2Gdev/TEST/mask_M_S_TX_v2.nc #ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+
+Samplings:
+  RRG_sample_0:
+    time_interpolation: 'False'
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  RRG_sample_1:
+    extrapolation: persist_closest
+  RRG_sample_2:
+    time_interpolation: 'False'
+  RRG_sample_3:
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  RRG_sample_4:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+
+Exports:
+  CH4_Mask:
+    collection: RRG_0.5x0.5deg_perturb_6h_90x200step_%y4.nc
+    regrid: VOTE
+    sample: RRG_sample_1
+    variable: mask
+  CO2_Mask:
+    collection: RRG_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE 
+    sample: RRG_sample_1
+    variable: REGION_MASK
+  CH4_agwaste_:
+    collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_agwaste
+  CH4_onat_:
+    collection: RRG_ONat-emis_ch4.x360_y180.%y4%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_onat
+  CH4_biofuel_:
+    collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_biofuel
+  CH4_extract_:
+    collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_extract
+  CH4_fire_:
+    collection: RRG_qfed2.emis_ch4.061.%y4%m2%d2.nc4
+    linear_transformation:
+      - 0.0
+      - 0.83
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: biomass
+  CH4_industrial_:
+    collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_industrial
+  CH4_transport_:
+    collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_transport
+  CH4_wetland_:
+    collection: RRG_LPJ-emis_ch4.x720_y360.%y4%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_wetlands
+  CO2_BIOMASS_:
+    collection: RRG_qfed2.emis_co2.006.%y4%m2%d2.nc4
+    regrid: CONSERVE
+    sample: RRG_sample_0
+    variable: biomass
+  CO2_FF_:
+    collection: RRG_lofi-v20.x576_y361.daily.%y4.nc
+    linear_transformation:
+      - 0.0
+      - 3.664125
+    regrid: CONSERVE
+    sample: RRG_sample_0
+    variable: emco2ff
+  CO2_GPP_:
+    collection: RRG_lofi-v20.x576_y361.3hrly.%y4%m2.nc
+    linear_transformation:
+      - 0.0
+      - 3.664125
+    regrid: CONSERVE
+    variable: emco2gpp
+  CO2_NEP_:
+    collection: RRG_lofi-v20.x576_y361.3hrly.%y4%m2.nc
+    linear_transformation:
+      - 0.0
+      - 3.664125
+    regrid: CONSERVE
+    variable: emco2nep
+  CO2_NER_:
+    collection: RRG_ner.lofi-v20.x576_y361.3hrly.%y4%m2.nc
+    linear_transformation:
+      - 0.0
+      - 3.664125
+    regrid: CONSERVE
+    variable: emco2ner
+  CO2_OCN_:
+    collection: RRG_lofi-v20.x576_y361.daily.%y4.nc
+    linear_transformation:
+      - 0.0
+      - 3.664125
+    regrid: CONSERVE
+    sample: RRG_sample_0
+    variable: emco2ocn
+  CO_BF:
+    collection: RRG_medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
+    linear_transformation:
+      - 0.0
+      - 1.19
+    regrid: CONSERVE
+    sample: RRG_sample_3
+    variable: emcobf
+  CO_BIOMASS:
+    collection: RRG_qfed2.emis_co.061.%y4%m2%d2.nc4
+    linear_transformation:
+      - 0.0
+      - 1.11
+    regrid: CONSERVE
+    sample: RRG_sample_3
+    variable: biomass
+  CO_FS:
+    collection: RRG_medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
+    linear_transformation:
+      - 0.0
+      - 1.2
+    regrid: CONSERVE
+    sample: RRG_sample_3
+    variable: emcofs
+  CO_ISOP:
+    collection: RRG_merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
+    linear_transformation:
+      - 0.0
+      - 0.2
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: emcoisop
+  CO_Mask:
+    collection: RRG_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE
+    sample: RRG_sample_1
+    variable: REGION_MASK
+  CO_NVOC:
+    collection: RRG_merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: emcomnol
+  CO_TERP:
+    collection: RRG_merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: emcoterp
+  RRG_Cl:
+    collection: RRG_merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: Cl
+  RRG_O1D:
+    collection: RRG_merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: O1D
+  RRG_OH:
+    collection: RRG_merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_4
+    variable: OH
+
+

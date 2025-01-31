@@ -17,6 +17,7 @@ Collections:
     template: /discover/nobackup/bweir/fluxes/carbon/v2020/deprecated/CO/merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
   RRG_merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc:
     template: /discover/nobackup/bweir/fluxes/carbon/v2020/deprecated/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+    valid_range: "2010-01-01T00:00:00/2019-12-31T24:00:00"
   RRG_ner.lofi-v20.x576_y361.3hrly.%y4%m2.nc:
     template: /home/mslong1/G2Gdev/Data/LoFI/ner.lofi-v20.x576_y361.3hrly.%y4%m2.nc
   RRG_qfed2.emis_ch4.061.%y4%m2%d2.nc4:
@@ -25,6 +26,10 @@ Collections:
     template: ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_co.061.%y4%m2%d2.nc4
   RRG_qfed2.emis_co2.006.%y4%m2%d2.nc4:
     template: ExtData/PIESA/sfc/QFED/v2.5r1/0.1/Y%y4/M%m2/qfed2.emis_co2.006.%y4%m2%d2.nc4
+  RRG_ONat-emis_ch4.x360_y180.%y4%m2.nc:
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/fluxes/CH4/v2023.1/misc/ONat-emis_ch4.x360_y180.%y4%m2.nc
+#  RRG_ARCTAS.region_mask.x540_y361.2008.nc:
+#    template: /home/mslong1/G2Gdev/TEST/mask_M_S_TX_v2.nc #ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
 
 Samplings:
   RRG_sample_0:
@@ -52,11 +57,21 @@ Exports:
     regrid: VOTE
     sample: RRG_sample_1
     variable: mask
+  CO2_Mask:
+    collection: RRG_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE 
+    sample: RRG_sample_1
+    variable: REGION_MASK
   CH4_agwaste_:
     collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
     regrid: CONSERVE
     sample: RRG_sample_2
     variable: ch4_agwaste
+  CH4_onat_:
+    collection: RRG_ONat-emis_ch4.x360_y180.%y4%m2.nc
+    regrid: CONSERVE
+    sample: RRG_sample_2
+    variable: ch4_onat
   CH4_biofuel_:
     collection: RRG_EDGAR-v7.0-emis_ch4.x3600_y1800.%y4.nc
     regrid: CONSERVE

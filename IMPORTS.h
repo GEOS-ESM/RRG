@@ -15,13 +15,13 @@
        VLOCATION  = MAPL_VLocationCenter,                  &
        RESTART    = MAPL_RestartSkip,     __RC__)  
 
-    call MAPL_AddImportSpec(GC,                            &
-       SHORT_NAME = 'QTOT',                                &
-       LONG_NAME  = 'mass_fraction_of_all_water',          &
-       UNITS      = 'kg kg-1',                             &
-       DIMS       = MAPL_DimsHorzVert,                     &
-       VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
+!!    call MAPL_AddImportSpec(GC,                            &
+!!       SHORT_NAME = 'QTOT',                                &
+!!       LONG_NAME  = 'mass_fraction_of_all_water',          &
+!!       UNITS      = 'kg kg-1',                             &
+!!       DIMS       = MAPL_DimsHorzVert,                     &
+!!       VLOCATION  = MAPL_VLocationCenter,                  &
+!!       RESTART    = MAPL_RestartSkip,     __RC__)  
 
     call MAPL_AddImportSpec(GC,                            &
        SHORT_NAME = 'QCTOT',                               &

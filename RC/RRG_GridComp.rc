@@ -1,0 +1,91 @@
+#
+#  Carbon component:  main resource file defining the particular instances.
+#
+#  v0, Dec 5, 2022: M.Long - first crack 
+#
+#  For detailed description consult:
+#
+#  <<ReadTheDocs>>
+
+# Toggles
+#not implemented yet H2O_feedback: .true. # feedback water production from CH4 photolysis
+#not implemented yet CH4_feedback: .true. # Increment CH4 due to CH4 photolysis
+#not implemented yet CO2_feedback: .true. # Increment CO2 due to CO+OH reaction
+
+# Instances: Instances will be declared as <species>.<instance>. e.g. if bbgl is
+#            listed as an instance for CO, it will be declared and registered as
+#	     "CO.bbgl"
+# Declare active instances. These will constitute the total abundance of a species
+CH4_instances: wetland industrial extract transport agwaste biofuel onat fire
+ CO_instances: tmp
+CO2_instances: tmp
+ TR_instances:
+
+# Passive instances. They can be blank. If a passive entry is also 
+# included in the active list, it will be switched to passive.
+ CO_passive_instances:
+CO2_passive_instances:
+CH4_passive_instances: 
+ TR_passive_instances:
+
+#not implemented yet CO2_active_total: .true.
+
+# Surface flux pairs associate surface flux imports with carbon gas instances
+# instance | import | optional: d=diurnal scaling p=PBL <numeric> scale factor, in any order
+# -------------------------------------------------------------
+CO2_surface_flux_pairs::
+ residual CO2_BIOMASS_ p d
+ residual CO2_FF_
+ residual CO2_NEP_
+ residual CO2_OCN_
+::
+
+CH4_surface_flux_pairs::
+ biofuel CH4_biofuel_
+ agwaste CH4_agwaste_
+ extract CH4_extract_
+ industrial CH4_industrial_
+ transport CH4_transport_
+ onat emis_CH4onat
+ fire CH4_fire_ d p
+ wetland CH4_wetland_
+::
+
+CO_surface_flux_pairs::
+# bbgl CO_BIOMASS d p
+# nbgl CO_FS # Fossil fuel
+# nbgl CO_ISOP
+# nbgl CO_NVOC
+# nbgl CO_TERP
+# nbgl CO_BF
+ residual CO_BIOMASS d p
+ residual CO_FS # Fossil fuel
+ residual CO_ISOP
+ residual CO_NVOC
+ residual CO_TERP
+ residual CO_BF
+::
+
+# Masks:
+# Format <instance> <mask1> <mask2> ...
+# where <mask_> is either 
+# - an integer, referring to an associated value in an imported region mask
+# - a lat/lon box of the form lat1,lat2,lon1,lon2
+#   the lat/lon box uses a comma delimiter, and cannot contain spaces
+#   Spaces will be interpreted by ESMF as a field delimiter and will cause an error
+#   in the mask interpreter.
+#   Examples: 
+#     namerica 1
+#   defines a mask referencing the value '1' in the region mask import file defined
+#   in ExtData.rc. Surface fluxes associated with the instance 'namerica' will have this
+#   mask applied
+#     
+# Options:
+# -------------------------------------------------------------------------
+CO2_masks::
+::
+
+CO_masks::
+::
+
+photolysisFile: /discover/nobackup/qliang/fvInput/Standard/SC.J_20_12_79_72_200_45.jpl15.nc4

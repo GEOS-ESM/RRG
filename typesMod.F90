@@ -46,6 +46,7 @@ module types_mod
      real, pointer, dimension(:,:,:) :: rho    ! air density
      real, pointer, dimension(:,:,:) :: q
      real, pointer, dimension(:,:,:) :: qtot   ! Calculated locally. Not currently an available import.
+     real, pointer, dimension(:,:,:) :: qctot
 
      ! Computed quantities
      real, allocatable               :: cosz(:,:), slr(:,:) ! insolation params

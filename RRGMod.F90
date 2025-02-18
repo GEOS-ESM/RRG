@@ -206,7 +206,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     character (len=255)                  :: name, photFile
-    type (MAPL_MetaComp),      pointer   :: MAPL
+    type (MAPL_MetaComp),      pointer   :: MAPL_
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
     type (ESMF_Config)                   :: cfg, universal_cfg
@@ -228,7 +228,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+    call MAPL_GetObjectFromGC (GC, MAPL_, __RC__)
 
 !   Get dimensions
 !   ---------------
@@ -239,8 +239,8 @@ contains
 
 !   Get DTs
 !   -------
-    call MAPL_GetResource(mapl, params%HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, params%CDT, Label='GOCART_DT:', default=real(params%HDT), __RC__)
+    call MAPL_GetResource(mapl_, params%HDT, Label='RUN_DT:', __RC__)
+    call MAPL_GetResource(mapl_, params%CDT, Label='GOCART_DT:', default=real(params%HDT), __RC__)
 
 !   Set some quantities
 !   -------------------
@@ -264,7 +264,7 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
+    call MAPL_Get ( mapl_, INTERNAL_ESMF_STATE = internal, &
                          LONS = params%LONS, &  ! Radians
                          LATS = params%LATS, &  ! Radians
                          INTERNALspec = INTERNALspec, &
@@ -347,7 +347,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
+    type (MAPL_MetaComp), pointer     :: mapl_
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
@@ -375,12 +375,12 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+    call MAPL_GetObjectFromGC (GC, mapl_, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
-    call MAPL_Get (mapl, RUNALARM=ALARM, __RC__)
+    call MAPL_Get (mapl_, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl_, RUNALARM=ALARM, __RC__)
 
 !   Get current time
 !   -----------------------------------
@@ -402,7 +402,7 @@ contains
     call MAPL_GetPointer(import,met%zle,  'ZLE',  __RC__) ! zle
     call MAPL_GetPointer(import,met%ple,  'PLE',  __RC__) ! ple
     call MAPL_GetPointer(import,met%delp, 'DELP', __RC__) ! delp
-    call MAPL_GetPointer(import,met%qtot, 'QTOT', __RC__)
+    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
 
 ! Get the instance data pointers
     do i=1,NINSTANCES
@@ -558,7 +558,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
+    type (MAPL_MetaComp), pointer     :: mapl_
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (MAPL_VarSpec), pointer      :: INTERNALspec(:)  ! This is used to access GC information, e.g. field names, etc. (MSL)
@@ -594,12 +594,12 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+    call MAPL_GetObjectFromGC (GC, mapl_, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
-    call MAPL_Get (mapl, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
+    call MAPL_Get (mapl_, INTERNAL_ESMF_STATE=internal, INTERNALspec=INTERNALspec, __RC__)
+    call MAPL_Get (mapl_, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
 !   Get current time
 !   -----------------------------------
@@ -622,8 +622,8 @@ contains
     call MAPL_GetPointer(import,met%ple,     'PLE', __RC__)
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
     call MAPL_GetPointer(import,met%q,         'Q', __RC__)
-!    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
-    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
+    call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
+!    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
     CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
@@ -775,19 +775,19 @@ contains
 
     call MAPL_GetPointer( export, Ptr3D, 'CO2DRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CO2_total                   )/(1.e0 - met%qtot)
+       Ptr3d = (CO2_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CH4DRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CH4_total                   )/(1.e0 - met%qtot)
+       Ptr3d = (CH4_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
     call MAPL_GetPointer( export, Ptr3D, 'CODRY', __RC__)
     if (associated(Ptr3d)) then
-       Ptr3d = (CO_total                   )/(1.e0 - met%qtot)
+       Ptr3d = (CO_total                   )/(1.e0 - (met%q+met%qctot))
        Ptr3d => null()
     endif
 
@@ -1270,23 +1270,23 @@ contains
 
     species = trim(instance(1)%species)
 
-   need_to_read_mask = .false.
-   do i = 1, size(instance)
-      need_to_read_mask = need_to_read_mask .or. instance(i)%hasmask
-   end do
-   if (.not. need_to_read_mask) return
+!!>>    need_to_read_mask = .false.
+!!>>    do i = 1, size(instance)
+!!>>       need_to_read_mask = need_to_read_mask .or. instance(i)%hasmask
+!!>>    end do
+!!>>    if (.not. need_to_read_mask) return
 
     !! Read the table in config
-    !call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
-    !VERIFY_(status)
-    !if (.not. isPresent) then
-      !do i = 1, size(instance)
-         !instance(i)%hasmask = .false.
-      !end do
-      !return
-    !end if
-    !call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
-    !VERIFY_(STATUS)
+    call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
+    VERIFY_(status)
+    if (.not. isPresent) then
+      do i = 1, size(instance)
+         instance(i)%hasmask = .false.
+      end do
+      return
+    end if
+    call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
+    VERIFY_(STATUS)
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
     VERIFY_(status)
 

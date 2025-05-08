@@ -5,65 +5,82 @@
 #
 #  For detailed description consult:
 #
-#  <<ReadTheDocs>>
+#
 
 # Toggles
+WellMixedSurfaceExchange: .true.  # This controls surface uptake, basically.
+UseResidual:              .true.
+
 #not implemented yet H2O_feedback: .true. # feedback water production from CH4 photolysis
 #not implemented yet CH4_feedback: .true. # Increment CH4 due to CH4 photolysis
 #not implemented yet CO2_feedback: .true. # Increment CO2 due to CO+OH reaction
 
-# Instances: Instances will be declared as <species>.<instance>. e.g. if bbgl is
-#            listed as an instance for CO, it will be declared and registered as
-#	     "CO.bbgl"
 # Declare active instances. These will constitute the total abundance of a species
 CH4_instances: wetland industrial extract transport agwaste biofuel onat fire
- CO_instances: tmp
-CO2_instances: tmp
- TR_instances:
+ CO_instances: bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
+CO2_instances: biomass ff nep ocn
 
 # Passive instances. They can be blank. If a passive entry is also 
 # included in the active list, it will be switched to passive.
- CO_passive_instances:
+ CO_passive_instances: bbae bbna bbla bbaf nbas nbna nbeu
 CO2_passive_instances:
-CH4_passive_instances: 
- TR_passive_instances:
-
-#not implemented yet CO2_active_total: .true.
+CH4_passive_instances:
 
 # Surface flux pairs associate surface flux imports with carbon gas instances
 # instance | import | optional: d=diurnal scaling p=PBL <numeric> scale factor, in any order
 # -------------------------------------------------------------
 CO2_surface_flux_pairs::
- residual CO2_BIOMASS_ p d
- residual CO2_FF_
- residual CO2_NEP_
- residual CO2_OCN_
+ biomass CO2_BIOMASS_ p d
+ ff      CO2_FF_
+ nep     CO2_NEP_
+ ocn     CO2_OCN_
+# namerica     CO2_BIOMASS_ p d
+# namerica     CO2_FF_
+# namerica     CO2_NEP_
+# namerica     CO2_OCN_
 ::
 
 CH4_surface_flux_pairs::
- biofuel CH4_biofuel_
- agwaste CH4_agwaste_
- extract CH4_extract_
- industrial CH4_industrial_
- transport CH4_transport_
+ agwaste emis_CH4agwaste
+ extract emis_CH4extract
+ industrial emis_CH4industrial
+ transport emis_CH4transport
  onat emis_CH4onat
- fire CH4_fire_ d p
- wetland CH4_wetland_
+ fire emis_CH4fire d p
+ wetland emis_CH4wetland
+ biofuel emis_CH4biofuel
 ::
 
 CO_surface_flux_pairs::
-# bbgl CO_BIOMASS d p
-# nbgl CO_FS # Fossil fuel
-# nbgl CO_ISOP
-# nbgl CO_NVOC
-# nbgl CO_TERP
-# nbgl CO_BF
- residual CO_BIOMASS d p
- residual CO_FS # Fossil fuel
- residual CO_ISOP
- residual CO_NVOC
- residual CO_TERP
- residual CO_BF
+ bbae CO_BIOMASS d p
+ bbna CO_BIOMASS d p
+ bbla CO_BIOMASS d p
+ bbaf CO_BIOMASS d p
+ bbgl CO_BIOMASS d p
+#
+ nbas CO_FS # Fossil fuel
+ nbas CO_ISOP
+ nbas CO_NVOC
+ nbas CO_TERP
+ nbas CO_BF
+#
+ nbna CO_FS # Fossil fuel
+ nbna CO_ISOP
+ nbna CO_NVOC
+ nbna CO_TERP
+ nbna CO_BF
+#
+ nbeu CO_FS # Fossil fuel
+ nbeu CO_ISOP
+ nbeu CO_NVOC
+ nbeu CO_TERP
+ nbeu CO_BF
+#
+ nbgl CO_FS # Fossil fuel
+ nbgl CO_ISOP
+ nbgl CO_NVOC
+ nbgl CO_TERP
+ nbgl CO_BF
 ::
 
 # Masks:
@@ -80,12 +97,19 @@ CO_surface_flux_pairs::
 #   in ExtData.rc. Surface fluxes associated with the instance 'namerica' will have this
 #   mask applied
 #     
-# Options:
 # -------------------------------------------------------------------------
 CO2_masks::
+# namerica 1
 ::
 
 CO_masks::
+ bbae 3 9 10
+ bbna 1
+ bbla 2 6
+ bbaf 5
+ nbas 4 10
+ nbna 1
+ nbeu 3 9
 ::
 
 photolysisFile: /discover/nobackup/qliang/fvInput/Standard/SC.J_20_12_79_72_200_45.jpl15.nc4

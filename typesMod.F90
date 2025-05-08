@@ -80,7 +80,8 @@ module types_mod
 
   type toggles
      logical                        :: strictMassBalance = .false. ! default false
-     logical                        :: wellmixed_sfcexch = .true. ! Assume well-mixed atmosphere by default
+     logical                        :: wellmixed_sfcexch = .true.  ! Assume well-mixed atmosphere by default
+     logical                        :: residual_instance = .true.  ! Assume a residual instance by default
   end type toggles
 
 end module types_mod

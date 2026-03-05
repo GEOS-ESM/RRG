@@ -1,6 +1,7 @@
 MODULE  COchem_mod
 
   ! !USES:
+  USE MAPL
 
   IMPLICIT NONE
 
@@ -94,7 +95,7 @@ CONTAINS
        do k=1,km
           k_(:,:,k) = 1.50E-13*(1.00+0.60E-05*(met%ple(:,:,k)+met%ple(:,:,k-1))*0.5e0) ! 2nd order (cm3/mcl/s): Where does this come from?
        enddo
-       loss = loss + k_*CO*OH!*cvfac
+       loss = loss + k_*CO*OH*cvfac
        
        CO   => null()
        loss => null()
@@ -108,15 +109,16 @@ CONTAINS
     !  -------------------------------
     !            CH4 + OH -> CO + ... 
     k_ = 2.45e-12*exp(-1775./met%t) ! 2nd order
-    prod = prod + k_*CH4*OH!*cvfac
+    prod = prod + k_*CH4*OH*cvfac
 
     !            CH4 + Cl -> CO + ...
     k_ = 7.10e-12*exp(-1270./met%t) ! 2nd order
-    prod = prod + k_*CH4*Cl!*cvfac
+    prod = prod + k_*CH4*Cl*cvfac
+!    if (MAPL_AM_I_ROOT()) write(*,*) '<<>>2 RRC Cl: ', maxval(cvfac), maxval(Cl), maxval(met%rho), params%avo, params%airmw
 
     !            CH4 + O1D -> CO + ...
     k_ = 1.75e-10 ! 2nd order
-    prod = prod + k_*CH4*O1D!*cvfac
+    prod = prod + k_*CH4*O1D*cvfac
 
     !            CO2 + hv -> CO + O3P
     !            CH4 + hv -> 2H2O + CO + ... there is a bunch of branching in this. We're assuming 100% CO yield. Is this OK?

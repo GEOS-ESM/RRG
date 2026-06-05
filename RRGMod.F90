@@ -124,36 +124,36 @@ contains
     call ESMF_ConfigLoadFile (cfg, 'RRG_GridComp.rc', rc=status)
     if (status /= 0) then
       if (mapl_am_i_root()) print*,'RRG_GridComp.rc does not exist!'
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
     end if
 
 !   Read & set cntrl object
 !   -----------------------
     call ESMF_ConfigFindLabel(cfg,label='strictMassBalance:',isPresent=present,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     if (present) then
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
     endif
     call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange:',isPresent=present,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     if (present) then
        call ESMF_ConfigGetAttribute(cfg,cntrl%wellmixed_sfcexch,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
     endif
     call ESMF_ConfigFindLabel(cfg,label='UseResidual:',isPresent=present,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     if (present) then
        call ESMF_ConfigGetAttribute(cfg,cntrl%residual_instance,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
     endif
 
 !   Load instances
 !   --------------
-    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); VERIFY_(status)
-    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(status)
-    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); VERIFY_(status)
-    call ProcessInstances( GC, Cfg, TR,  'TR',   1.0000, nTR,  rc=status ); VERIFY_(status)
+    call ProcessInstances( GC, Cfg, CO,  'CO',  28.0104, nCO,  rc=status ); _VERIFY(status)
+    call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); _VERIFY(status)
+    call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); _VERIFY(status)
+    call ProcessInstances( GC, Cfg, TR,  'TR',   1.0000, nTR,  rc=status ); _VERIFY(status)
 
    if (nCO .gt. 0 .and. nCH4 .eq. 0) &
       call MAPL_AddImportSpec(GC,             &
@@ -168,10 +168,10 @@ contains
 
 !   Fluxes
 !   ------
-    call RegisterFluxWithMAPL( GC, cfg, 'CO' , status ); VERIFY_(status)
-    call RegisterFluxWithMAPL( GC, cfg, 'CO2', status ); VERIFY_(status)
-    call RegisterFluxWithMAPL( GC, cfg, 'CH4', status ); VERIFY_(status)
-    call RegisterFluxWithMAPL( GC, cfg, 'TR',  status ); VERIFY_(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CO' , status ); _VERIFY(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CO2', status ); _VERIFY(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'CH4', status ); _VERIFY(status)
+    call RegisterFluxWithMAPL( GC, cfg, 'TR',  status ); _VERIFY(status)
 
 !   Set entry points
 !   ------------------------
@@ -184,7 +184,7 @@ contains
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine SetServices
 
@@ -261,7 +261,7 @@ contains
     call ESMF_ConfigLoadFile (cfg, 'RRG_GridComp.rc', rc=status)
     if (status /= 0) then
       if (mapl_am_i_root()) print*,'RRG_GridComp.rc does not exist!'
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
     end if
 
 !   Call Generic Initialize
@@ -313,18 +313,18 @@ contains
     end do
 
     call ESMF_ConfigFindLabel(cfg,label='photolysisFile:',rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     call ESMF_ConfigGetAttribute(cfg,photfile,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     call readPhotTables( trim(photfile), params%km, status )
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
 !    allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
 !    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
@@ -391,10 +391,10 @@ contains
 !   Get current time
 !   -----------------------------------
     call ESMF_ClockGet(CLOCK,currTIME=TIME,rc=STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
     call ESMF_TimeGet(TIME ,YY=IYR, MM=IMM, DD=IDD, H=IHR, M=IMN, S=ISC, rc=STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
     call MAPL_PackTime(params%NYMD,IYR,IMM,IDD)
     call MAPL_PackTime(params%NHMS,IHR,IMN,ISC)
@@ -444,7 +444,7 @@ contains
 !                R U N  T H E  O P E R A T I O N S
 !   Aggregate instances into the totals prior to operations
     call util_aggregate( RC )
-    VERIFY_(RC)
+    _VERIFY(RC)
 
 !   Fill pointers for surface fluxes
     if (allocated(sfc_flux)) call fillFluxes( import, sfc_flux, __RC__ )
@@ -530,7 +530,7 @@ contains
           if (associated(sfc_flux(i)%flux)) sfc_flux(i)%flux => null()
        enddo
     endif
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine GridCompRun1
 
@@ -610,10 +610,10 @@ contains
 !   Get current time
 !   -----------------------------------
     call ESMF_ClockGet(CLOCK,currTIME=TIME,rc=STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
     call ESMF_TimeGet(TIME ,YY=IYR, MM=IMM, DD=IDD, H=IHR, M=IMN, S=ISC, rc=STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
     call MAPL_PackTime(params%NYMD,IYR,IMM,IDD)
     call MAPL_PackTime(params%NHMS,IHR,IMN,ISC)
@@ -838,7 +838,7 @@ contains
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine GridCompRun2
 
@@ -885,7 +885,7 @@ contains
 !  Get my name and set-up traceback handle
 !  ---------------------------------------
    call ESMF_GridCompGet( GC, NAME=COMP_NAME, RC=STATUS )
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    Iam = trim(COMP_NAME) // '::' // 'Finalize_'
 
    ! Instances
@@ -947,7 +947,7 @@ contains
 !ALT: do not deallocate "foreign objects"
    call MAPL_GenericFinalize ( GC, IMPORT, EXPORT, CLOCK, __RC__ )
 
-   RETURN_(ESMF_SUCCESS)
+   _RETURN(ESMF_SUCCESS)
 
    end subroutine Finalize
 
@@ -973,14 +973,14 @@ contains
        CALL MAPL_GetPointer( import, sfc_flux(i)%flux, trim(sfc_flux(i)%name), notFoundOK=.FALSE., RC=RC )
        if (RC .eq. ESMF_RC_NOT_FOUND) then
           write(*,*) 'Could not find flux, '//trim(sfc_flux(i)%name)//' in imports. Aborting'
-          RETURN_(RC)
+          _RETURN(RC)
        endif
        if (RC .ne. ESMF_SUCCESS) then
-          RETURN_(RC)
+          _RETURN(RC)
        endif
     enddo
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine fillFluxes
 
@@ -1002,7 +1002,7 @@ contains
     if (RC /= ESMF_SUCCESS) then ! Label not found
        if (MAPL_am_I_root()) write(*,*) '<<>> Fluxes not found for '//trim(species)//'. Exiting.'
        !_VERIFY(RC)
-       RETURN_(ESMF_SUCCESS)
+       _RETURN(ESMF_SUCCESS)
     endif
 
     ! Set up the read loop
@@ -1067,7 +1067,7 @@ contains
          add2export = .true., & !<-- is this what makes it available for HISTORY?
          __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine RegisterInstanceWithMAPL
 
@@ -1107,7 +1107,7 @@ contains
     if (RC /= ESMF_SUCCESS) then ! Label not found
        if (MAPL_am_I_root()) write(*,*) '<<>> Flux pairing not found for '//trim(species)//'. Exiting.'
        !_VERIFY(RC)
-       RETURN_(ESMF_SUCCESS)
+       _RETURN(ESMF_SUCCESS)
     endif
 
     ! Set up the read loop
@@ -1162,7 +1162,7 @@ contains
           ! Error if not found
           if (MAPL_am_I_root() .and. RC /= ESMF_SUCCESS) then
              write(*,*) 'RRG: Did not find '//trim(string2)//' in import state'
-             VERIFY_(RC)
+             _VERIFY(RC)
           elseif (MAPL_am_I_root()) then
              write(*,*) 'RRG: Found surface flux '//trim(string2)
           endif
@@ -1171,7 +1171,7 @@ contains
 
           ! Exit with error
           _ASSERT(.FALSE.,'ERROR: RRG: Unpaired surface_flux entry in RRG_GridComp.rc')
-          RETURN_(ESMF_SUCCESS)
+          _RETURN(ESMF_SUCCESS)
 
        endif
 
@@ -1187,7 +1187,7 @@ contains
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
              errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false.,errmsg)
-             RETURN_(ESMF_SUCCESS)
+             _RETURN(ESMF_SUCCESS)
           endif
 
           if (trim(string3) .eq. 'P') pblmix =.true.
@@ -1203,7 +1203,7 @@ contains
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
              errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false., errmsg)
-             RETURN_(ESMF_SUCCESS)
+             _RETURN(ESMF_SUCCESS)
           endif
 
           if (trim(string3) .eq. 'P') pblmix =.true.
@@ -1219,7 +1219,7 @@ contains
           if (trim(string3) .ne. 'P' .and. trim(string3) .ne. 'D' .and. .not. is_numeric(string3)) then
              errmsg = 'RRG::ConfigFile: invalid character in surface pairing table: '//trim(string3)
              _ASSERT(.false., errmsg)
-             RETURN_(ESMF_SUCCESS)
+             _RETURN(ESMF_SUCCESS)
           endif
 
           if (trim(string3) .eq. 'P') pblmix =.true.
@@ -1233,7 +1233,7 @@ contains
        nlist = nlist + 1
 
        call util_addsurfaceflux(trim(string1), trim(string2), diurnal, pblmix, scalefactor, RC)
-       VERIFY_(RC)
+       _VERIFY(RC)
     enddo
 
     if (MAPL_am_I_root()) then
@@ -1251,7 +1251,7 @@ contains
     endif
 
     if (nlist == 0) then
-       RETURN_(ESMF_SUCCESS)
+       _RETURN(ESMF_SUCCESS)
     end if
 
   end subroutine ReadFluxTable
@@ -1284,7 +1284,7 @@ contains
 
     !! Read the table in config
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
-    VERIFY_(status)
+    _VERIFY(status)
     if (.not. isPresent) then
       do i = 1, size(instance)
          instance(i)%hasmask = .false.
@@ -1292,9 +1292,9 @@ contains
       return
     end if
     call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status) ! 'n' is dummy. lineCount isn't used
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     call ESMF_ConfigFindLabel( cfg,trim(species)//'_masks::',isPresent=isPresent,rc=status )
-    VERIFY_(status)
+    _VERIFY(status)
 
     ! Set up the read loop
     tend  = .false.
@@ -1307,7 +1307,7 @@ contains
        lat2  = -999.9
 
        call ESMF_ConfigNextLine( cfg,tableEnd=tend,rc=status )
-       VERIFY_(status)
+       _VERIFY(status)
 
        if (tend) cycle
 
@@ -1342,7 +1342,7 @@ contains
                 ! Only do this if not already associated. Otherwise, we can't
                 ! superimpose additional masks. They'd get overwritten
                 allocate(instance(i)%mask(params%im,params%jm),stat=status)
-                VERIFY_(status)
+                _VERIFY(status)
                 instance(i)%mask = 0
              endif
 
@@ -1588,7 +1588,7 @@ contains
    RC = 0
 
    nInst = ESMF_ConfigGetLen(cfg,label=trim(species)//'_instances:',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
    !  define the total/aggregate field
    if (nInst .gt. 0) then
@@ -1606,38 +1606,38 @@ contains
     !  Get instances from RC file
     !  ----------------------------------
     call ESMF_ConfigFindLabel(cfg,trim(species)//'_instances:',rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
     if (nInst .ne. 0) then
     do i = 1, nInst
        call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        inst_name = TRIM(inst_name)
        ! Register as tracer
        call RegisterInstanceWithMAPL( GC, trim(species), trim(inst_name), rc=status )
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
 
        ! Add new active instance (assume active)
        call Util_AddInstance( GI, trim(inst_name), trim(species), MW, isActive, status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
     end do
     endif
 
     !  Get passive instances and toggle them
     n = 0
     call ESMF_ConfigFindLabel(cfg,label=trim(species)//'_passive_instances:',isPresent=ispresent,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     if (ispresent) then
        n = ESMF_ConfigGetLen(cfg,label=trim(species)//'_passive_instances:',rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        call ESMF_ConfigFindLabel(cfg,trim(species)//'_passive_instances:',rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        if (n .gt. 0) then
           nInst = nInst + n
           do i = 1, n
              ! Get instance name
              call ESMF_ConfigGetAttribute(cfg,inst_name,rc=status)
-             VERIFY_(STATUS)
+             _VERIFY(STATUS)
 
              found = .false.
              do j=1,size(GI)
@@ -1646,15 +1646,15 @@ contains
                    found = .true.
                    ! user configured rc files poorly. report and die
                    if (MAPL_am_I_root()) write(*,*) 'RRG: '//trim(species)//' passive instance entry already declared as an active instance'
-                   VERIFY_(-1)
+                   _VERIFY(-1)
                 end if
              end do
              if (.not. found) then
                 ! register as a new instance
                 call Util_AddInstance( GI, trim(inst_name), trim(species), MW, .false., status)
-                VERIFY_(STATUS)
+                _VERIFY(STATUS)
                 call RegisterInstanceWithMAPL( GC, trim(species), trim(inst_name), rc=status )
-                VERIFY_(STATUS)
+                _VERIFY(STATUS)
              endif
 
           end do
@@ -1665,18 +1665,18 @@ contains
     ! A species' residual is always the last instance
     if (nInst .ne. 0 .and. cntrl%residual_instance) then
        call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        nInst = nInst+1
        call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
     endif
 
    !  Create a region mask import if masks are required
    call ESMF_ConfigFindLabel( cfg, trim(species)//'_masks::', isPresent=isPresent, rc=status )
-   VERIFY_(status)
+   _VERIFY(status)
    if (isPresent) then
       call ESMF_ConfigGetDim( cfg, lineCount=n, columnCount=nterms, rc=status)
-      VERIFY_(status)
+      _VERIFY(status)
    else
       n = 0
    end if

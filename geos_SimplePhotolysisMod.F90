@@ -224,17 +224,17 @@ contains
     ! Grab the virtual machine
     ! ------------------------
     CALL ESMF_VMGetCurrent(vm, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     CALL ESMF_VMGet(vm, MPICOMMUNICATOR=comm, rc=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifdef H5_HAVE_PARALLEL
 
     CALL MPI_Info_create(info, status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MPI_Info_set(info, "romio_cb_read", "automatic", status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifdef NETCDF_NEED_NF_MPIIO
     status = NF_OPEN_PAR(TRIM(fileName), IOR(NF_NOWRITE,NF_MPIIO), comm, info, unit)
@@ -252,7 +252,7 @@ contains
        IF(status /= NF_NOERR) THEN
           PRINT *,'Error opening file ',TRIM(fileName), status
           PRINT *, NF_STRERROR(status)
-          VERIFY_(status)
+          _VERIFY(status)
        END IF
 
        DO i = 1,nD
@@ -261,7 +261,7 @@ contains
           IF(status /= NF_NOERR) THEN
              PRINT *,"Error inquiring dimension ID for ", TRIM(dimName(i)), status
              PRINT *, NF_STRERROR(status)
-             VERIFY_(status)
+             _VERIFY(status)
           END IF
 
           status = NF_INQ_DIMLEN(unit, dimid, n)
@@ -295,34 +295,34 @@ contains
     END IF ! MAPL_AM_I_ROOT
 
     CALL MAPL_CommsBcast(vm, nsza, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, numO3, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, nlam, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, nts, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, nxdo, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, aqSize, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #endif
 
     ALLOCATE(sdat(nsza,numo3,km,nlam), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(o2jdat(nsza,numo3,km), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(o3_tab(numo3,km), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(xtab(nlam,nxdo,nts), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(sza_tab(nsza), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(CH2O_aq(aqSize), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(rlam(nlam), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifndef H5_HAVE_PARALLEL
 
@@ -336,7 +336,7 @@ contains
           IF(status /= NF_NOERR) THEN
              PRINT *,"Error getting varid for ", TRIM(varName(i)), status
              PRINT *, NF_STRERROR(status)
-             VERIFY_(status)
+             _VERIFY(status)
           END IF
 
           SELECT CASE (i)
@@ -360,7 +360,7 @@ contains
           IF(status /= NF_NOERR) THEN
              PRINT *,"Error getting values for ", TRIM(varName(i)), status
              PRINT *, NF_STRERROR(status)
-             VERIFY_(status)
+             _VERIFY(status)
           END IF
 
        END DO
@@ -368,7 +368,7 @@ contains
 #ifdef H5_HAVE_PARALLEL
 
        CALL MPI_Info_free(info, status)
-       VERIFY_(status)
+       _VERIFY(status)
 
 #else
 
@@ -376,35 +376,35 @@ contains
 
     length = SIZE(sza_tab)
     CALL MPI_Bcast(sza_tab, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     length = SIZE(rlam)
     CALL MPI_Bcast(rlam, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     length = SIZE(o3_tab)
     CALL MPI_Bcast(o3_tab, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     length = SIZE(sdat)
     CALL MPI_Bcast(sdat, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     length = SIZE(o2jdat)
     CALL MPI_Bcast(o2jdat, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     length = SIZE(xtab)
     CALL MPI_Bcast(xtab, length, MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
     CALL MAPL_CommsBcast(vm, CH2O_aq, aqsize, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #endif
 
     status = NF_CLOSE(unit)
-    VERIFY_(status)
+    _VERIFY(status)
 
     RETURN
   END SUBROUTINE readPhotTables

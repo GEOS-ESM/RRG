@@ -412,19 +412,27 @@ contains
     enddo
 
 !   Get pointers to the aggregates/totals
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
-    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+    if (ispecies('CO2') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+    endif
+    
+    if (ispecies('CO') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+    endif
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
-    if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+    if (ispecies('CH4') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+    endif
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
-    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
-
-    ! Even though TR_total does not make sense, adding it here because the code needs it, and this is an atypical use of RRG anyway
-    call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE., __RC__)
-    if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
-
+    if (ispecies('TR') .gt. 0) then
+       ! Even though TR_total does not make sense, adding it here because the code needs it, and this is an atypical use of RRG anyway
+       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
+    endif
+    
 ! ===============================================================
 
 ! ===============================================================
@@ -646,19 +654,28 @@ contains
 
 !   Get pointers to the aggregates/totals
 !   CO_total, CO2_total and CH4_total variables are made available for convenience.
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE.,__RC__)
-    if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+    if (ispecies('CO2') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+    endif
+    
+    if (ispecies('CO') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+    endif
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE.,__RC__)
-    if (associated(aggregate(ispecies('CO'))%q))  CO_total  => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+    if (ispecies('CH4') .gt. 0) then
+       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+    endif
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE.,__RC__)
-    if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+    if (ispecies('TR') .gt. 0) then
+       ! Even though TR_total does not make sense, adding it here because the code needs it, and this is an atypical use of RRG anyway
+       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
+    endif
 
-    call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE.,__RC__)
-    if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
-
-! ===============================================================
+    ! ===============================================================
 
 ! ===============================================================
 !                S E T  U P  P H O T O L Y S I S

@@ -71,6 +71,8 @@
        __RC__)
 
     !  Add gas imports for CH4 & CO chemistry
+    ! If there are any CO or CH4 species then we need oxidants
+    if (nCO .gt. 0 .or. nCH4 .gt. 0) then
     call MAPL_AddImportSpec(GC,                            &
        SHORT_NAME = 'RRG_OH',                              &
        LONG_NAME  = 'hydroxyl',                            &
@@ -94,7 +96,7 @@
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationCenter,                  &
        __RC__)
-
+    endif
 ! 2-D
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'AREA',                               &

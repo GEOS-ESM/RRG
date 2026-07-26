@@ -65,7 +65,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO2_ProdLoss',                       &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/kg/s',                            &
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
     __RC__)
@@ -73,7 +73,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO_Prod',                            &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/kg/s',                            &
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
     __RC__)
@@ -81,7 +81,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO_Loss',                            &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/kg/s',                            &
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
     __RC__)
@@ -89,7 +89,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CH4_ProdLoss',                       &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/m3/s',                            &
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
     __RC__)
@@ -97,7 +97,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO2_EM',                             &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/m3/s',                            &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)
@@ -105,7 +105,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CH4_EM',                             &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/m3/s',                            &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)
@@ -113,7 +113,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'TR_EM',                             &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/m3/s',                            &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)
@@ -121,7 +121,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO_EM',                             &
         LONG_NAME  = '',                                   &
-    UNITS      = 'kg/kg/s',                            &
+        UNITS      = 'kg/kg/s',                            &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)
@@ -129,7 +129,7 @@
     call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO2FDNL',                            &
         LONG_NAME  = '',                                   &
-    UNITS      = '',                            &
+        UNITS      = '',                            &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)

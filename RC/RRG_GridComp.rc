@@ -16,6 +16,7 @@
 #            listed as an instance for CO, it will be declared and registered as
 #	     "CO.bbgl"
 # Declare active instances. These will constitute the total abundance of a species
+# TR is a special case. It is meant to be any user-defined tracer.
 CH4_instances: wetland industrial extract transport agwaste biofuel onat fire
  CO_instances: tmp
 CO2_instances: tmp
@@ -29,6 +30,12 @@ CH4_passive_instances:
  TR_passive_instances:
 
 #not implemented yet CO2_active_total: .true.
+
+# Species settings:
+# -- For now, only MW can be set. There are default values for CH4, CO and CO2.
+#    TR = 1.00 by default. To set species MW, add <species>.mw: <MW value> to
+#    the list below. TR.mw is provided as an example.
+TR.mw: 1.00     # Default 1.0 g/mol
 
 # Surface flux pairs associate surface flux imports with carbon gas instances
 # instance | import | optional: d=diurnal scaling p=PBL <numeric> scale factor, in any order

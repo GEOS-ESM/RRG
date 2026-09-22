@@ -135,10 +135,16 @@ contains
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
        VERIFY_(STATUS)
     endif
-    call ESMF_ConfigFindLabel(cfg,label='wellMixedSurfaceExchange:',isPresent=present,rc=status)
+    call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange:',isPresent=present,rc=status)
     VERIFY_(STATUS)
     if (present) then
        call ESMF_ConfigGetAttribute(cfg,cntrl%wellmixed_sfcexch,rc=status)
+       VERIFY_(STATUS)
+    endif
+    call ESMF_ConfigFindLabel(cfg,label='UseResidual:',isPresent=present,rc=status)
+    VERIFY_(STATUS)
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg,cntrl%residual_instance,rc=status)
        VERIFY_(STATUS)
     endif
 
@@ -1137,7 +1143,7 @@ contains
 
           ! Error if not found
           if (RC /= ESMF_SUCCESS) then
-             errmsg = 'RRG: Error registering flux pair. '//trim(string1)//' not an instance of '//trim(species)
+             errmsg = 'RRG: Error registering flux pair. Instance '//trim(string1)//', listed as flux target in RRG_GridComp.rc, is not an instance of '//trim(species)
              _ASSERT(.false., errmsg)
           elseif (MAPL_am_I_root()) then
              write(*,*) 'RRG: Found instance '//trim(string1)//' for species '//trim(species)
@@ -1657,7 +1663,7 @@ contains
 
     ! If there are instances, then define an active residual by default
     ! A species' residual is always the last instance
-    if (nInst .ne. 0) then
+    if (nInst .ne. 0 .and. cntrl%residual_instance) then
        call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
        VERIFY_(STATUS)
        nInst = nInst+1

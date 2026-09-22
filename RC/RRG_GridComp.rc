@@ -16,6 +16,7 @@ UseResidual:              .true.
 #not implemented yet CO2_feedback: .true. # Increment CO2 due to CO+OH reaction
 
 # Declare active instances. These will constitute the total abundance of a species
+# TR is a special case. It is meant to be any user-defined tracer.
 CH4_instances: wetland industrial extract transport agwaste biofuel onat fire
  CO_instances: bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
 CO2_instances: biomass ff nep ocn
@@ -25,6 +26,12 @@ CO2_instances: biomass ff nep ocn
  CO_passive_instances: bbae bbna bbla bbaf nbas nbna nbeu
 CO2_passive_instances:
 CH4_passive_instances:
+
+# Species settings:
+# -- For now, only MW can be set. There are default values for CH4, CO and CO2.
+#    TR = 1.00 by default. To set species MW, add <species>.mw: <MW value> to
+#    the list below. TR.mw is provided as an example.
+TR.mw: 1.00     # Default 1.0 g/mol
 
 # Surface flux pairs associate surface flux imports with carbon gas instances
 # instance | import | optional: d=diurnal scaling p=PBL <numeric> scale factor, in any order

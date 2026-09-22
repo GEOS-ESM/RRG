@@ -135,10 +135,16 @@ contains
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
        VERIFY_(STATUS)
     endif
-    call ESMF_ConfigFindLabel(cfg,label='wellMixedSurfaceExchange:',isPresent=present,rc=status)
+    call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange:',isPresent=present,rc=status)
     VERIFY_(STATUS)
     if (present) then
        call ESMF_ConfigGetAttribute(cfg,cntrl%wellmixed_sfcexch,rc=status)
+       VERIFY_(STATUS)
+    endif
+    call ESMF_ConfigFindLabel(cfg,label='UseResidual:',isPresent=present,rc=status)
+    VERIFY_(STATUS)
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg,cntrl%residual_instance,rc=status)
        VERIFY_(STATUS)
     endif
 
@@ -360,8 +366,8 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:), TR_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
-    type(ESMF_Alarm)                :: ALARM
+    real, pointer                     :: ptr2d(:,:), ptr3d(:,:,:)
+    type(ESMF_Alarm)                  :: ALARM
 
     __Iam__('Run1')
 
@@ -580,15 +586,15 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:), TR_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
-    real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D
-    real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
-    real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
-    real(ESMF_KIND_R4), allocatable :: SLR(:,:)
-    type (MAPL_SunOrbit)            :: ORBIT
-    type(ESMF_Alarm)                :: ALARM
+    real, pointer                     :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
+    real, pointer, dimension(:,:,:)   :: O3, OH, Cl, O1D
+    real(ESMF_KIND_R4), allocatable   :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
+    real(ESMF_KIND_R4), allocatable   :: ZTH(:,:)
+    real(ESMF_KIND_R4), allocatable   :: SLR(:,:)
+    type (MAPL_SunOrbit)              :: ORBIT
+    type(ESMF_Alarm)                  :: ALARM
 
-    real                            :: r, m
+    real                              :: r, m
 
     __Iam__('Run2')
 
@@ -634,10 +640,14 @@ contains
     !    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
-    CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
-    CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
-    CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
 
+    ! Do we need oxidants?
+    if (nCO .gt. 0 .or. nCH4 .gt. 0) then
+       CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
+       CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
+       CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
+    endif
+    
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  O3col(params%im,params%jm,params%km), __STAT__)
@@ -1154,7 +1164,7 @@ contains
 
           ! Error if not found
           if (RC /= ESMF_SUCCESS) then
-             errmsg = 'RRG: Error registering flux pair. '//trim(string1)//' not an instance of '//trim(species)
+             errmsg = 'RRG: Error registering flux pair. Instance '//trim(string1)//', listed as flux target in RRG_GridComp.rc, is not an instance of '//trim(species)
              _ASSERT(.false., errmsg)
           elseif (MAPL_am_I_root()) then
              write(*,*) 'RRG: Found instance '//trim(string1)//' for species '//trim(species)
@@ -1688,7 +1698,8 @@ contains
 
     ! If there are instances, then define an active residual by default
     ! A species' residual is always the last instance
-    if (nInst .ne. 0) then
+    if (nInst .ne. 0 .and. cntrl%residual_instance) then
+       write(*,*) '<<>> declaring a residual'
        call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
        VERIFY_(STATUS)
        nInst = nInst+1

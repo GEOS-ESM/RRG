@@ -101,20 +101,6 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
-!==============================================================
-!           S E T  T H E  I M P O R T  S T A T E
-
-! using include is just so much cleaner
-#include "IMPORTS.h"
-
-! ===============================================================
-!      S E T  U P  T H E  E X P O R T  S T A T E
-
-! using include is just so much cleaner
-#include "EXPORTS.h"
-
-! ===============================================================
-
 ! ===============================================================
 !  R E A D  C O N F I G  A N D  S E T U P  I N S T A N C E S
 !
@@ -179,6 +165,20 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun1,       __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, GridCompRun2,       __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_FINALIZE, Finalize,      __RC__)
+
+!==============================================================
+!           S E T  T H E  I M P O R T  S T A T E
+
+! using include is just so much cleaner
+#include "IMPORTS.h"
+
+! ===============================================================
+!      S E T  U P  T H E  E X P O R T  S T A T E
+
+! using include is just so much cleaner
+#include "EXPORTS.h"
+
+! ===============================================================
 
 !   Set generic services
 !   ----------------------------------
@@ -366,8 +366,8 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:), TR_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:)
-    type(ESMF_Alarm)                :: ALARM
+    real, pointer                     :: ptr2d(:,:), ptr3d(:,:,:)
+    type(ESMF_Alarm)                  :: ALARM
 
    __Iam__('Run1')
 
@@ -578,15 +578,15 @@ contains
     real, pointer                     :: CO2_total(:,:,:), CH4_total(:,:,:), CO_total(:,:,:), TR_total(:,:,:)
     logical, save                     :: first = .true. ! I don't like using this but it has to happen. ExtData doesn't fill masks until run() and I don't want to repeat operations
 
-    real, pointer                   :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
-    real, pointer, dimension(:,:,:) :: O3, OH, Cl, O1D
-    real(ESMF_KIND_R4), allocatable :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
-    real(ESMF_KIND_R4), allocatable :: ZTH(:,:)
-    real(ESMF_KIND_R4), allocatable :: SLR(:,:)
-    type (MAPL_SunOrbit)            :: ORBIT
-    type(ESMF_Alarm)                :: ALARM
+    real, pointer                     :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
+    real, pointer, dimension(:,:,:)   :: O3, OH, Cl, O1D
+    real(ESMF_KIND_R4), allocatable   :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
+    real(ESMF_KIND_R4), allocatable   :: ZTH(:,:)
+    real(ESMF_KIND_R4), allocatable   :: SLR(:,:)
+    type (MAPL_SunOrbit)              :: ORBIT
+    type(ESMF_Alarm)                  :: ALARM
 
-    real                            :: r, m
+    real                              :: r, m
 
    __Iam__('Run2')
 
@@ -629,13 +629,16 @@ contains
     call MAPL_GetPointer(import,met%delp,   'DELP', __RC__)
     call MAPL_GetPointer(import,met%q,         'Q', __RC__)
     call MAPL_GetPointer(import,met%qctot, 'QCTOT', __RC__)
-!    call MAPL_GetPointer(import,met%qtot,   'QTOT', __RC__)
     call MAPL_GetPointer(import,met%rho, 'AIRDENS', __RC__)
     CALL MAPL_GetPointer(import,     O3,      'O3', __RC__)
-    CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
-    CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
-    CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
 
+    ! Do we need oxidants?
+    if (nCO .gt. 0 .or. nCH4 .gt. 0) then
+       CALL MAPL_GetPointer(import,     OH,  'RRG_OH', __RC__)
+       CALL MAPL_GetPointer(import,     Cl,  'RRG_Cl', __RC__)
+       CALL MAPL_GetPointer(import,    O1D, 'RRG_O1D', __RC__)
+    endif
+    
     allocate(  met%cosz(size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  met%slr (size(params%lats,1), size(params%lats,2)), __STAT__)
     allocate(  O3col(params%im,params%jm,params%km), __STAT__)
@@ -685,8 +688,6 @@ contains
        O3col(:,:,k) = O3col(:,:,k-1) + m*r*(O3(:,:,k-1)*met%delp(:,:,k-1) + O3(:,:,k)*met%delp(:,:,k))
        O2col(:,:,k) = O2col(:,:,k-1) + r*0.20946*(met%delp(:,:,k-1)+met%delp(:,:,k))*1e-4
     END DO
-
-    O3col = 0.
 
 !  Compute the photolysis rate for CO2 + hv -> CO + O*
     met%photj = 0.e0
@@ -1664,6 +1665,7 @@ contains
     ! If there are instances, then define an active residual by default
     ! A species' residual is always the last instance
     if (nInst .ne. 0 .and. cntrl%residual_instance) then
+       write(*,*) '<<>> declaring a residual'
        call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
        VERIFY_(STATUS)
        nInst = nInst+1

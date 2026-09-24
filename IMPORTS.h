@@ -73,6 +73,7 @@
     !  Add gas imports for CH4 & CO chemistry
     ! If there are any CO or CH4 species then we need oxidants
     if (nCO .gt. 0 .or. nCH4 .gt. 0) then
+    write(*,*) '<<>> ADDING OXIDANTS'
     call MAPL_AddImportSpec(GC,                            &
        SHORT_NAME = 'RRG_OH',                              &
        LONG_NAME  = 'hydroxyl',                            &

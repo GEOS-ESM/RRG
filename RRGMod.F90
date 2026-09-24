@@ -101,20 +101,6 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
-    !==============================================================
-    !           S E T  T H E  I M P O R T  S T A T E
-
-    ! using include is just so much cleaner
-#include "IMPORTS.h"
-
-    ! ===============================================================
-    !      S E T  U P  T H E  E X P O R T  S T A T E
-
-    ! using include is just so much cleaner
-#include "EXPORTS.h"
-
-    ! ===============================================================
-
     ! ===============================================================
     !  R E A D  C O N F I G  A N D  S E T U P  I N S T A N C E S
     !
@@ -154,6 +140,18 @@ contains
     call ProcessInstances( GC, Cfg, CO2, 'CO2', 44.0098, nCO2, rc=status ); VERIFY_(status)
     call ProcessInstances( GC, Cfg, CH4, 'CH4', 16.0422, nCH4, rc=status ); VERIFY_(status)
     call ProcessInstances( GC, Cfg, TR,  'TR',   1.0000, nTR,  rc=status ); VERIFY_(status)
+
+    !==============================================================
+    !           S E T  T H E  I M P O R T  S T A T E
+    ! using include is just so much cleaner
+#include "IMPORTS.h"
+
+    ! ===============================================================
+    !      S E T  U P  T H E  E X P O R T  S T A T E
+    ! using include is just so much cleaner
+#include "EXPORTS.h"
+
+    ! ===============================================================
 
     if (nCO .gt. 0 .and. nCH4 .eq. 0) &
          call MAPL_AddImportSpec(GC,             &

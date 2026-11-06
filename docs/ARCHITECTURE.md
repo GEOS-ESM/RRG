@@ -9,7 +9,7 @@ elsewhere; paths inside this repository do not change.
 
 Paths below are relative to the RRG repository root. The parent is the
 Chemistry gridded component; see
-[`@GEOSchem_GridComp/docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md)
+`@GEOSchem_GridComp/docs/ARCHITECTURE.md` (`../../docs/ARCHITECTURE.md` in the fixture)
 (sections 2.3 and 3) for how it adds and runs RRG, the provider
 mechanism and the `ENABLE_*` flags. That document is not repeated here.
 

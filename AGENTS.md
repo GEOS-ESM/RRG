@@ -23,9 +23,7 @@ port; see "Differences from `main`" in `docs/ARCHITECTURE.md`.
 ## Placement
 GEOSgcm fixture (`components.yaml` @ `f50622d`):
 `src/Components/@GEOSgcm_GridComp/GEOSagcm_GridComp/GEOSphysics_GridComp/@GEOSchem_GridComp/@RRG`.
-Parent: the Chemistry component (`../docs/ARCHITECTURE.md`, `../AGENTS.md`;
-on this line the parent's documents are not written yet; the MAPL2-line
-versions are on its `develop` branch), which adds RRG when `ENABLE_RRG:` is
+Parent: the Chemistry component (`../docs/ARCHITECTURE.md`, `../AGENTS.md`), which adds RRG when `ENABLE_RRG:` is
 true.
 
 ## Documents

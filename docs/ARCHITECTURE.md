@@ -34,8 +34,7 @@ on this line and not on `main`.
 Paths below are relative to the RRG repository root. The parent is the
 Chemistry gridded component; see
 `@GEOSchem_GridComp/docs/ARCHITECTURE.md` (`../../docs/ARCHITECTURE.md` in the fixture)
-(on this line the parent's documents are not written yet; the MAPL2-line
-versions are on its `develop` branch) for how it adds and runs RRG, the
+for how it adds and runs RRG, the
 provider mechanism and the `ENABLE_*` flags. That document is not repeated
 here.
 

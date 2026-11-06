@@ -1,9 +1,9 @@
 # RRG decisions
 
 **Audience:** coding agents and developers working on RRG.
-**Describes:** the MAPL2 line, branch `main`.
-**Verified against:** `RRG` @ `a0779ba` (2026-11-06).
-**Placement:** as in the GEOSgcm fixture (`components.yaml` @ `0f2e0fb`).
+**Describes:** the MAPL3 line, branch `release/MAPL-v3`.
+**Verified against:** `RRG` @ `786f7a1` (2026-11-06).
+**Placement:** as in the GEOSgcm fixture (`components.yaml` @ `f50622d`).
 
 ### Species fields defined by the resource file
 - Pattern: the internal state, imports and flux registrations are created in

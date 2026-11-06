@@ -1,17 +1,43 @@
 # RRG architecture
 
 **Audience:** coding agents and developers working on RRG.
-**Describes:** the MAPL2 line, branch `main`.
-**Verified against:** `RRG` @ `a0779ba` (2026-11-06).
-**Placement:** as in the GEOSgcm fixture (`components.yaml` @ `0f2e0fb`).
+**Describes:** the MAPL3 line, branch `release/MAPL-v3`.
+**Verified against:** `RRG` @ `786f7a1` (2026-11-06).
+**Placement:** as in the GEOSgcm fixture (`components.yaml` @ `f50622d`).
 Other fixtures (for example GEOSadas, GEOSldas) may place this repository
 elsewhere; paths inside this repository do not change.
+
+**Build status on this line:** not built, not ported. On `release/MAPL-v3`,
+`@GEOSchem_GridComp/CMakeLists.txt` calls `esma_add_subdirectories(GOCART)`
+only, with the comment "Restore subdirs as components are ported to MAPL3.";
+`RRG` appears only in the commented-out `alldirs` list, marked "not yet
+ported to MAPL3 - restore when ported". The Chemistry top-level library
+(`GEOS_ChemGridComp.F90`, which adds this component) is present but not
+compiled on this line: the `esma_add_library` block that builds it is
+commented out in `../CMakeLists.txt`. RRG's own dependencies are MAPL, ESMF
+and NetCDF Fortran (`CMakeLists.txt`); it does not use `Chem_Base` or
+`Chem_Shared`. The code in this repository is an older version of the MAPL2-line code
+(25 commits behind `main`; `MAPL_Add*Spec` specs, `MAPL_AddChild`), kept for a later port. Statements about the parent
+describe `GEOS_ChemGridComp.F90` as it is on this line; the file is present
+but not compiled.
+
+**Differences from `main`.** `release/MAPL-v3` is 25 commits behind `main`
+(0 ahead). This document describes the older code. Files that differ on
+`main` (`git diff origin/release/MAPL-v3 origin/main`): `RRGMod.F90`
+(`IMPORTS.h` and `EXPORTS.h` are included after `ProcessInstances`; oxidant
+and aggregate pointers guarded; a `<species>.mw:` key), `IMPORTS.h` (oxidant
+imports conditional), `EXPORTS.h` (units of some production/loss exports: `kg/kg/s` here; four are `kg/m3/s` on `main`), `RC/RRG_GridComp.rc`
+(`TR.mw:`). `main` also has `.github/CODEOWNERS`, a docs workflow and Sphinx
+sources under `docs/source/`; none is on this line. `surfaceMod.F90X` exists
+on this line and not on `main`.
 
 Paths below are relative to the RRG repository root. The parent is the
 Chemistry gridded component; see
 `@GEOSchem_GridComp/docs/ARCHITECTURE.md` (`../../docs/ARCHITECTURE.md` in the fixture)
-(sections 2.3 and 3) for how it adds and runs RRG, the provider
-mechanism and the `ENABLE_*` flags. That document is not repeated here.
+(on this line the parent's documents are not written yet; the MAPL2-line
+versions are on its `develop` branch) for how it adds and runs RRG, the
+provider mechanism and the `ENABLE_*` flags. That document is not repeated
+here.
 
 ## 1. Purpose
 
@@ -27,7 +53,7 @@ an aggregate (`RRGMod.F90`, `ProcessInstances`).
 
 - Directory `@RRG` in the Chemistry repository checkout. Component name
   `RRG`, module `RRG_GridCompMod`, file `RRGMod.F90`, public entry
-  `SetServices` (`RRGMod.F90`; parent table in the Chemistry document).
+  `SetServices` (`RRGMod.F90`; the parent adds it in `../GEOS_ChemGridComp.F90`).
 - Parent: `GEOSchem_GridComp`; it adds RRG with `MAPL_AddChild` only when
   `ENABLE_RRG:` is true (`../GEOS_ChemGridComp.F90`, SetServices).
 - Children: none.
@@ -43,11 +69,12 @@ an aggregate (`RRGMod.F90`, `ProcessInstances`).
 All set in `SetServices` with `MAPL_GridCompSetEntryPoint`, then
 `MAPL_GenericSetServices` (`RRGMod.F90`, SetServices).
 
-- `SetServices`: opens `RRG_GridComp.rc` as a private `ESMF_Config`
+- `SetServices`: includes `IMPORTS.h` and `EXPORTS.h` first (on this line
+  they come before the resource file is read; on `main` after
+  `ProcessInstances`); opens `RRG_GridComp.rc` as a private `ESMF_Config`
   (`Initialize` loads the same file again, separately, for the tables); reads `strictMassBalance:`, `WellMixedSurfaceExchange:`,
   `UseResidual:`; calls `ProcessInstances` for CO, CO2, CH4, TR (adds
-  internal specs from the instance lists); includes `IMPORTS.h` and
-  `EXPORTS.h`; calls `RegisterFluxWithMAPL` for each species (adds one
+  internal specs from the instance lists); calls `RegisterFluxWithMAPL` for each species (adds one
   import per flux-table entry). Because the specs depend on the resource
   file, the field set is decided at SetServices time.
 - `Initialize`: reads `RUN_DT:` and `GOCART_DT:`, calls
@@ -69,14 +96,18 @@ All set in `SetServices` with `MAPL_GridCompSetEntryPoint`, then
 - `Finalize`: deallocates instance and flux arrays, then
   `MAPL_GenericFinalize` (`RRGMod.F90`, Finalize).
 - Which parent phase calls which RRG phase: the parent registers RRG with two
-  phases (Chemistry document, section 3); *Inferred:* phase 1 runs in
+  phases (the parent's `SetServices`, `../GEOS_ChemGridComp.F90`); *Inferred:* phase 1 runs in
   the parent's Run1 and phase 2 in Run2, by registration order.
 
 ## 4. State
 
 - Imports: `IMPORTS.h` holds the fixed specs: `T`, `Q`, `QCTOT`, `ZLE`,
   `DELP`, `PLE`, `AIRDENS`, `O3`, `AREA`, `ZPBL`, `PS`, `U10M`, `V10M`, and
-  (only if CO or CH4 instances exist) `RRG_OH`, `RRG_Cl`, `RRG_O1D`.
+  `RRG_OH`, `RRG_Cl`, `RRG_O1D` (unconditional on this line; on `main` only if
+  CO or CH4 instances exist).
+  On this line the aggregate `MAPL_GetPointer` calls in `GridCompRun1` and
+  `GridCompRun2` are unconditional (on `main` they are guarded by
+  `if (ispecies('X') .gt. 0)`).
   The `QTOT` import spec is commented out in `IMPORTS.h`, and its pointer line is commented in `GridCompRun2`.
   `CO_CH4` is added in `SetServices` when CO exists and CH4 does not.
   Per-flux imports come from `RegisterFluxWithMAPL`; `ProcessInstances`
@@ -105,7 +136,7 @@ All set in `SetServices` with `MAPL_GridCompSetEntryPoint`, then
   process is assumed because of these module variables.
 - Restart: no restart-required instance fields; aggregates are
   restart-optional. Parent `AGCM.rc.tmpl` keeps RRG restart keys commented
-  (Chemistry document, section 3).
+  (*Unverified:* parent's restart configuration; not re-checked on this line).
 
 ## 5. Configuration that changes structure
 
@@ -118,11 +149,13 @@ From `RC/RRG_GridComp.rc` (read by `SetServices` and `Initialize`):
 | `*_surface_flux_pairs::` | Instance to import-name table; options `d` (diurnal scaling), `p` (PBL mixing), a number (scale factor). |
 | `*_masks::` | Instance region masks (integer or lat/lon box). |
 | `WellMixedSurfaceExchange:`, `UseResidual:`, `strictMassBalance:` | Control switches in `cntrl`. |
-| `<species>.mw:` | Molecular weight override. |
 | `photolysisFile:` | Photolysis table; read in `Initialize`. |
 
-Parent keys: `ENABLE_RRG:`, `CO2_PROVIDER:`, `RATS_DIAGNOSTICS:` (Chemistry
-document). The comments in `RC/RRG_GridComp.rc` call H2O, CH4 and CO2
+A `<species>.mw:` molecular-weight key (and `TR.mw:` in the rc file) exists on
+`main` only; on this line `ProcessInstances` passes the built-in weights.
+
+Parent keys: `ENABLE_RRG:`, `CO2_PROVIDER:`, `RATS_DIAGNOSTICS:`
+(`../GEOS_ChemGridComp.F90`). The comments in `RC/RRG_GridComp.rc` call H2O, CH4 and CO2
 feedbacks "not implemented yet".
 
 ## 6. Dependencies
@@ -137,7 +170,8 @@ feedbacks "not implemented yet".
   (`diag_prodloss`, `diag_sfcflux`); `typesMod.F90`; `globalMod.F90`;
   `utilsMod.F90` (`util_aggregate`, `util_addinstance`, ...).
 - `surfaceMod.F90` is a symbolic link to `posDef.surfaceMod.F90`; the build
-  compiles that name. `std.surfaceMod.F90` is not built. The headers
+  compiles that name. `std.surfaceMod.F90` is not built; `surfaceMod.F90X`
+  is also present and not built. The headers
   differ: the `posDef` version states a goal of no branching inside the
   nested loops and splits positive (source) and negative (loss) flux
   handling; the `std` version tests `inst%active` in the loop
@@ -159,8 +193,10 @@ feedbacks "not implemented yet".
 - Surface-flux units and scaling: sign of flux matters (positive adds to
   `prod`, negative to `loss`); `DEVEL.org` says negative fluxes yield
   different outcomes (*Unverified:* development notes).
-- Species-off cases: oxidant imports exist only if CO or CH4 instances
-  exist; CO without CH4 uses the `CO_CH4` import (`SetServices`).
+- Species-off cases: on this line the oxidant imports (`RRG_OH`, `RRG_Cl`,
+  `RRG_O1D`) are declared and read unconditionally, also when no CO or CH4
+  instance exists (on `main` they are conditional); CO without CH4 uses the
+  `CO_CH4` import (`SetServices`).
 - Module-level `CO/CO2/CH4/TR` pointers: two RRG instances in one executable
   would share them (*Inferred:*).
 
@@ -190,5 +226,5 @@ See [`decisions.md`](decisions.md).
    Question for maintainers: is the `.rc` kept only for legacy runs?
 6. `LONG_NAME` of the `CO_CH4` import is `source species`, unit `1`, while
    the CH4 aggregate is mol mol-1.
-7. Parent document: the two-phase claim and module name agree with the
-   code; no contradiction found.
+7. The parent's code (`../GEOS_ChemGridComp.F90`) agrees with the module
+   name and the two-phase claim; no contradiction found.

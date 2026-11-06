@@ -43,5 +43,4 @@ which adds RRG when `ENABLE_RRG:` is true.
 
 ## Build and test
 Built as library `RRG` by `CMakeLists.txt` inside the GEOSgcm build; no
-stand-alone build or tests here. Build with NAG first, then gfortran,
-from the GEOSgcm build tree (see the user's build wrappers).
+stand-alone build or tests here.

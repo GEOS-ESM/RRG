@@ -95,6 +95,22 @@
     __RC__)
 
     call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'CH4_Prod',                           &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'kg/m2/s',                            &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+    __RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
+        SHORT_NAME = 'CH4_Loss',                           &
+        LONG_NAME  = '',                                   &
+        UNITS      = 'kg/m2/s',                            &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+    __RC__)
+
+    call MAPL_AddExportSpec(GC,                            &
         SHORT_NAME = 'CO2_EM',                             &
         LONG_NAME  = '',                                   &
         UNITS      = 'kg/m3/s',                            &
@@ -133,3 +149,12 @@
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone,                   &
     __RC__)
+
+    call MAPL_AddExportSpec(GC,                                   &
+        SHORT_NAME = 'CH4_COLUMN',                                &
+        LONG_NAME  = 'Column average mole fraction of CH4_total', &
+        UNITS      = 'mol mol-1 (dry air)',                       &
+        DIMS       = MAPL_DimsHorzOnly,                           &
+        VLOCATION  = MAPL_VLocationNone,                          &
+    __RC__)
+    

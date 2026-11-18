@@ -101,6 +101,18 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
+    !==============================================================
+    !           S E T  T H E  I M P O R T  S T A T E
+    ! using include is just so much cleaner
+#include "IMPORTS.h"
+
+    ! ===============================================================
+    !      S E T  U P  T H E  E X P O R T  S T A T E
+    ! using include is just so much cleaner
+#include "EXPORTS.h"
+
+    ! ===============================================================
+
     ! ===============================================================
     !  R E A D  C O N F I G  A N D  S E T U P  I N S T A N C E S
     !
@@ -179,7 +191,8 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_FINALIZE, Finalize,      __RC__)
 
     !   Set generic services
-    !   ----------------------------------
+    !   ----------------------------------    
+
     call MAPL_GenericSetServices (GC, __RC__)
 
     RETURN_(ESMF_SUCCESS)
@@ -586,7 +599,7 @@ contains
 
     real, pointer                     :: ptr2d(:,:), ptr3d(:,:,:), CO2ptr(:,:,:), CH4ptr(:,:,:), COptr(:,:,:), TRptr(:,:,:)
     real, pointer, dimension(:,:,:)   :: O3, OH, Cl, O1D
-    real(ESMF_KIND_R4), allocatable   :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:)
+    real(ESMF_KIND_R4), allocatable   :: O3col(:,:,:), O2col(:,:,:), CO2photj(:,:,:), CH4photj(:,:,:), delp_dry(:,:,:)
     real(ESMF_KIND_R4), allocatable   :: ZTH(:,:)
     real(ESMF_KIND_R4), allocatable   :: SLR(:,:)
     type (MAPL_SunOrbit)              :: ORBIT
@@ -840,6 +853,40 @@ contains
        Ptr3d => null()
     endif
 
+    !  Column burden (dry air mole fraction)
+    !  ----------------------
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_COLUMN', __RC__ )
+    if (associated(Ptr2d)) then
+       allocate(delp_dry(params%im,params%jm,params%km))
+       do k = 1, params%km
+          delp_dry(:,:,k) = met%delp(:,:,k) * (1.e0 - (met%q(:,:,k)+met%qctot(:,:,k)))
+       end do
+       Ptr2d = sum(CH4_total*met%delp, dim=3)/sum(delp_dry, dim=3)
+       deallocate(delp_dry)
+       Ptr2d => null()
+    end if
+    
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_Prod', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(CH4(:)) ! Accumulate over each instance
+             if (CH4(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CH4(i)%Prod(:,:,k) * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_Loss', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km
+          do i = 1,size(CH4(:)) ! Accumulate over each instance
+             if (CH4(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CH4(i)%Loss(:,:,k)  * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
     ! ===============================================================
 
     ! ===============================================================

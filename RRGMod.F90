@@ -582,7 +582,7 @@ contains
     !EOP
     !============================================================================
     !   !Locals
-    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    character (len=ESMF_MAXSTR)       :: COMP_NAME, name
     type (MAPL_MetaComp), pointer     :: mapl_
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
@@ -853,9 +853,48 @@ contains
        Ptr3d => null()
     endif
 
-    !  Column burden (dry air mole fraction)
+    !  Column diagnostics
     !  ----------------------
-    call MAPL_GetPointer( export, Ptr2d, 'CH4_COLUMN', __RC__ )
+
+    do n = 1,NINSTANCES
+       ! Loop over instances
+       ! Get the species string
+       name = trim(instances(n)%p%name)//'_COL'
+       call MAPL_GetPointer( export, Ptr2d, trim(name), __RC__ )
+       if (associated(Ptr2d)) then
+          allocate(delp_dry(params%im,params%jm,params%km))
+          do k = 1, params%km
+             delp_dry(:,:,k) = met%delp(:,:,k) * (1.e0 - (met%q(:,:,k)+met%qctot(:,:,k)))
+          end do
+          Ptr2d = sum(instances(n)%p%data3d*met%delp, dim=3)/sum(delp_dry, dim=3)
+          deallocate(delp_dry)
+          Ptr2d => null()
+       end if
+
+       name = trim(instances(n)%p%name)//'_Prod'
+       call MAPL_GetPointer( export, Ptr2d, trim(name), __RC__ )
+       if (associated(Ptr2d)) then
+          do k = 1, params%km ! Accumulate over each level
+             if (instances(n)%p%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + instances(n)%p%Prod(:,:,k) * (instances(n)%p%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+          Ptr2d => null()
+       end if
+
+       name = trim(instances(n)%p%name)//'_Loss'
+       call MAPL_GetPointer( export, Ptr2d, trim(name), __RC__ )
+       if (associated(Ptr2d)) then
+          do k = 1, params%km ! Accumulate over each level
+             if (instances(n)%p%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + instances(n)%p%Loss(:,:,k) * (instances(n)%p%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+          Ptr2d => null()
+       end if
+
+    enddo
+
+    ! Per-species aggregate column exports
+    call MAPL_GetPointer( export, Ptr2d, 'CH4_COL', __RC__ )
     if (associated(Ptr2d)) then
        allocate(delp_dry(params%im,params%jm,params%km))
        do k = 1, params%km
@@ -865,7 +904,7 @@ contains
        deallocate(delp_dry)
        Ptr2d => null()
     end if
-    
+
     call MAPL_GetPointer( export, Ptr2d, 'CH4_Prod', __RC__ )
     if (associated(Ptr2d)) then
        do k = 1, params%km ! Accumulate over each level
@@ -879,10 +918,112 @@ contains
 
     call MAPL_GetPointer( export, Ptr2d, 'CH4_Loss', __RC__ )
     if (associated(Ptr2d)) then
-       do k = 1, params%km
+       do k = 1, params%km ! Accumulate over each level
           do i = 1,size(CH4(:)) ! Accumulate over each instance
              if (CH4(i)%active) & ! Add only prod from active instances
-                  Ptr2d = Ptr2d + CH4(i)%Loss(:,:,k)  * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+                  Ptr2d = Ptr2d + CH4(i)%Loss(:,:,k) * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    ! CO2
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_COL', __RC__ )
+    if (associated(Ptr2d)) then
+       allocate(delp_dry(params%im,params%jm,params%km))
+       do k = 1, params%km
+          delp_dry(:,:,k) = met%delp(:,:,k) * (1.e0 - (met%q(:,:,k)+met%qctot(:,:,k)))
+       end do
+       Ptr2d = sum(CH4_total*met%delp, dim=3)/sum(delp_dry, dim=3)
+       deallocate(delp_dry)
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_Prod', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(CH4(:)) ! Accumulate over each instance
+             if (CH4(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CH4(i)%Prod(:,:,k) * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'CO2_Loss', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(CH4(:)) ! Accumulate over each instance
+             if (CH4(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CH4(i)%Loss(:,:,k) * (CH4(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    ! CO
+    call MAPL_GetPointer( export, Ptr2d, 'CO_COL', __RC__ )
+    if (associated(Ptr2d)) then
+       allocate(delp_dry(params%im,params%jm,params%km))
+       do k = 1, params%km
+          delp_dry(:,:,k) = met%delp(:,:,k) * (1.e0 - (met%q(:,:,k)+met%qctot(:,:,k)))
+       end do
+       Ptr2d = sum(CO_total*met%delp, dim=3)/sum(delp_dry, dim=3)
+       deallocate(delp_dry)
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'CO_Prod', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(CO(:)) ! Accumulate over each instance
+             if (CO(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CH4(i)%Prod(:,:,k) * (CO(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'CO_Loss', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(CO(:)) ! Accumulate over each instance
+             if (CO(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + CO(i)%Loss(:,:,k) * (CO(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    ! TR
+    call MAPL_GetPointer( export, Ptr2d, 'TR_COL', __RC__ )
+    if (associated(Ptr2d)) then
+       allocate(delp_dry(params%im,params%jm,params%km))
+       do k = 1, params%km
+          delp_dry(:,:,k) = met%delp(:,:,k) * (1.e0 - (met%q(:,:,k)+met%qctot(:,:,k)))
+       end do
+       Ptr2d = sum(TR_total*met%delp, dim=3)/sum(delp_dry, dim=3)
+       deallocate(delp_dry)
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'TR_Prod', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(TR(:)) ! Accumulate over each instance
+             if (TR(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + TR(i)%Prod(:,:,k) * (TR(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
+          enddo
+       enddo
+       Ptr2d => null()
+    end if
+
+    call MAPL_GetPointer( export, Ptr2d, 'TR_Loss', __RC__ )
+    if (associated(Ptr2d)) then
+       do k = 1, params%km ! Accumulate over each level
+          do i = 1,size(TR(:)) ! Accumulate over each instance
+             if (TR(i)%active) & ! Add only prod from active instances
+                  Ptr2d = Ptr2d + TR(i)%Loss(:,:,k) * (TR(i)%mw/MAPL_AIRMW) * met%delp(:,:,k)/MAPL_GRAV ! kg/m2/s
           enddo
        enddo
        Ptr2d => null()

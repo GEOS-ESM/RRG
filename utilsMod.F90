@@ -262,10 +262,10 @@ module utils_mod
       RC = ESMF_SUCCESS
 
       do n=1,nspecies
-         if (.not. associated(aggregate(n)%q)) cycle
-         aggregate(n)%q = 0.e0
+         if (.not. associated(aggregate(n)%vmr)) cycle
+         aggregate(n)%vmr = 0.e0
          do i=1,NINSTANCES
-            if (instances(i)%p%ispecies .eq. n .and. instances(i)%p%active) aggregate(n)%q = aggregate(n)%q + instances(i)%p%data3d !
+            if (instances(i)%p%ispecies .eq. n .and. instances(i)%p%active) aggregate(n)%vmr = aggregate(n)%vmr + instances(i)%p%data3d !
          end do
       end do
 

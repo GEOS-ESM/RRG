@@ -133,22 +133,10 @@ contains
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
        VERIFY_(STATUS)
     endif
-    call ESMF_ConfigFindLabel(cfg,label='WellMixeSdurfaceExchange_Active:',isPresent=present,rc=status)
+    call ESMF_ConfigFindLabel(cfg,label='Proportional_Uptake:',isPresent=present,rc=status)
     VERIFY_(STATUS)
     if (present) then
-       call ESMF_ConfigGetAttribute(cfg,cntrl%active_wellmixed,rc=status)
-       VERIFY_(STATUS)
-    endif
-    call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange_Passive:',isPresent=present,rc=status)
-    VERIFY_(STATUS)
-    if (present) then
-       call ESMF_ConfigGetAttribute(cfg,cntrl%passive_wellmixed,rc=status)
-       VERIFY_(STATUS)
-    endif
-    call ESMF_ConfigFindLabel(cfg,label='UseResidual:',isPresent=present,rc=status)
-    VERIFY_(STATUS)
-    if (present) then
-       call ESMF_ConfigGetAttribute(cfg,cntrl%residual_instance,rc=status)
+       call ESMF_ConfigGetAttribute(cfg,cntrl%proportional_uptake,rc=status)
        VERIFY_(STATUS)
     endif
 
@@ -436,24 +424,24 @@ contains
 
     !   Get pointers to the aggregates/totals
     if (ispecies('CO2') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%vmr, 'CO2', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO2'))%vmr)) CO2_total => aggregate(ispecies('CO2'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('CO') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%vmr,  'CO' , notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO'))%vmr))   CO_total => aggregate(ispecies('CO'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('CH4') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%vmr, 'CH4', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CH4'))%vmr)) CH4_total => aggregate(ispecies('CH4'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('TR') .gt. 0) then
        ! Even though TR_total does not make sense, adding it here because the code needs it, and this is an atypical use of RRG anyway
-       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%vmr, 'TR', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('TR'))%vmr)) TR_total => aggregate(ispecies('TR'))%vmr  ! Aggregate is used under the hood
     endif
 
     ! ===============================================================
@@ -547,7 +535,7 @@ contains
 
     CO2_total => null(); CO_total => null(); CH4_total => null(); TR_total => null()
     do i=1,nspecies
-       if (associated(aggregate(i)%q)) aggregate(i)%q => null()
+       if (associated(aggregate(i)%vmr)) aggregate(i)%vmr => null()
     enddo
 
     if (allocated(sfc_flux)) then
@@ -682,24 +670,24 @@ contains
     !   Get pointers to the aggregates/totals
     !   CO_total, CO2_total and CH4_total variables are made available for convenience.
     if (ispecies('CO2') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%q, 'CO2', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CO2'))%q)) CO2_total => aggregate(ispecies('CO2'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO2'))%vmr, 'CO2', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO2'))%vmr)) CO2_total => aggregate(ispecies('CO2'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('CO') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%q,  'CO' , notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CO'))%q))   CO_total => aggregate(ispecies('CO'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CO'))%vmr,  'CO' , notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CO'))%vmr))   CO_total => aggregate(ispecies('CO'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('CH4') .gt. 0) then
-       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%q, 'CH4', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('CH4'))%q)) CH4_total => aggregate(ispecies('CH4'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('CH4'))%vmr, 'CH4', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('CH4'))%vmr)) CH4_total => aggregate(ispecies('CH4'))%vmr  ! Aggregate is used under the hood
     endif
 
     if (ispecies('TR') .gt. 0) then
        ! Even though TR_total does not make sense, adding it here because the code needs it, and this is an atypical use of RRG anyway
-       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%q, 'TR', notFoundOK=.TRUE., __RC__)
-       if (associated(aggregate(ispecies('TR'))%q)) TR_total => aggregate(ispecies('TR'))%q  ! Aggregate is used under the hood
+       call MAPL_GetPointer(internal, aggregate(ispecies('TR'))%vmr, 'TR', notFoundOK=.TRUE., __RC__)
+       if (associated(aggregate(ispecies('TR'))%vmr)) TR_total => aggregate(ispecies('TR'))%vmr  ! Aggregate is used under the hood
     endif
 
     ! ===============================================================
@@ -1047,7 +1035,7 @@ contains
     enddo
     CO2_total => null(); CO_total => null(); CH4_total => null()
     do i=1,nspecies
-       aggregate(i)%q => null()
+       aggregate(i)%vmr => null()
     enddo
     deallocate(met%cosz, met%slr, O3col, O2col, CO2photj, CH4photj, __STAT__ )
 
@@ -1146,7 +1134,7 @@ contains
 
     ! Aggregates
     do i=1,size(aggregate)
-       if (associated(aggregate(i)%q)) deallocate(aggregate(i)%q)
+       if (associated(aggregate(i)%vmr)) deallocate(aggregate(i)%vmr)
     enddo
     if (allocated(aggregate)) deallocate(aggregate)
 
@@ -1887,17 +1875,6 @@ contains
           end do
        end if
     end if
-
-    ! If there are instances, then define an active residual by default
-    ! A species' residual is always the last instance
-    if (nInst .ne. 0 .and. cntrl%residual_instance) then
-       write(*,*) '<<>> declaring a residual'
-       call Util_AddInstance( GI, 'residual', trim(species), MW, isActive, status)
-       VERIFY_(STATUS)
-       nInst = nInst+1
-       call RegisterInstanceWithMAPL( GC, trim(species), 'residual', rc=status )
-       VERIFY_(STATUS)
-    endif
 
     !  Create a region mask import if masks are required
     call ESMF_ConfigFindLabel( cfg, trim(species)//'_masks::', isPresent=isPresent, rc=status )

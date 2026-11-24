@@ -100,7 +100,6 @@ CONTAINS
        loss => null()
     enddo
 
-    ! Process the prod terms into the residual
     nst = size(COinst)
     prod => COinst(nst)%prod(:,:,:)
 

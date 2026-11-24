@@ -48,26 +48,18 @@ contains
 !        Negative flux (sink): added to loss. Losses are stored as
 !        positive numbers, hence "loss - rate". How the sink is applied
 !        depends on whether the instance is active (part of the
-!        aggregate) or passive (not part of the aggregate), and on its
-!        well-mixed setting:
-!             active  instances use cntrl%active_wellmixed
-!             passive instances use cntrl%passive_wellmixed
+!        aggregate) or passive (not part of the aggregate):
 !
-!          Not well-mixed (active or passive):
+!          Passive instance, or active with cntrl%proportional_uptake off:
 !             This instance alone takes the full sink.
 !
-!          Well-mixed, passive instance:
-!             This instance alone loses mass, at the same fractional
-!             rate the aggregate would: rate * data3d / aggregate q.
-!
-!          Well-mixed, active instance:
+!          Active instance with cntrl%proportional_uptake on:
 !             The sink acts on the whole aggregate. Every active
 !             instance of the species loses its own fraction:
-!             rate * data3d / aggregate q. These add up to the full
+!             rate * data3d / aggregate vmr. These add up to the full
 !             sink. Passive instances are not touched.
-!
-!        Well-mixed sinks are skipped where the aggregate is zero,
-!        to avoid dividing by zero.
+!             Skipped where the aggregate is zero, to avoid dividing
+!             by zero.
 !
 !  3) Free the work arrays.
 !
@@ -87,7 +79,6 @@ contains
     real, allocatable :: fPBL(:,:,:), fDNL(:,:)
     real, allocatable :: fac(:,:)
     real              :: rate
-    logical           :: wellmixed
 
     type(gas_instance), pointer :: inst
 
@@ -114,10 +105,6 @@ contains
        index = sfc_flux(n)%index
        inst => instances(index)%p
        spc = inst%ispecies
-
-       ! Well-mixed setting for this instance: active and passive have their own
-       wellmixed = cntrl%active_wellmixed
-       if (.not. inst%active) wellmixed = cntrl%passive_wellmixed
 
        ! Combined 2D factor: scale and units, plus optional mask and daily cycle
        fac = sfc_flux(n)%scalefactor * grav * params%airmw / inst%mw
@@ -148,28 +135,21 @@ contains
              ! Not a sink
              if (sfc_flux(n)%flux(i,j) >= 0.) cycle
 
-             ! Not well-mixed: this instance takes the full sink
-             if (.not. wellmixed) then
+             ! Passive, or no proportional uptake: this instance takes the full sink
+             if (.not. inst%active .or. .not. cntrl%proportional_uptake) then
                 inst%loss(i,j,k) = inst%loss(i,j,k) - rate
                 cycle
              endif
 
-             ! Well-mixed: the fractions below divide by the aggregate
-             if (aggregate(spc)%q(i,j,k) <= 0.) cycle
+             ! Proportional uptake: the fractions below divide by the aggregate
+             if (aggregate(spc)%vmr(i,j,k) <= 0.) cycle
 
-             ! Passive: loses the aggregate's fractional rate
-             if (.not. inst%active) then
-                inst%loss(i,j,k) = inst%loss(i,j,k) - &
-                     rate * inst%data3d(i,j,k) / aggregate(spc)%q(i,j,k)
-                cycle
-             endif
-
-             ! Active: every active instance of this species loses its own fraction
+             ! Every active instance of this species loses its own fraction
              do nst=1,NINSTANCES
                 if (instances(nst)%p%ispecies /= spc) cycle
                 if (.not. instances(nst)%p%active) cycle
                 instances(nst)%p%loss(i,j,k) = instances(nst)%p%loss(i,j,k) - &
-                     rate * instances(nst)%p%data3d(i,j,k) / aggregate(spc)%q(i,j,k)
+                     rate * instances(nst)%p%data3d(i,j,k) / aggregate(spc)%vmr(i,j,k)
              end do
           end do
           end do

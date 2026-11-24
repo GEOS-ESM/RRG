@@ -26,7 +26,7 @@ module types_mod
   end type inst_
 
   type aggr
-     real, pointer                   :: q(:,:,:)
+     real, pointer                   :: vmr(:,:,:)
   end type aggr
 
   type meteorology ! met
@@ -79,10 +79,8 @@ module types_mod
   end type parameters
 
   type toggles
-     logical                        :: strictMassBalance = .false. ! default false
-     logical                        :: passive_wellmixed = .false.  ! Assume unmixed atmosphere by default
-     logical                        ::  active_wellmixed = .false.  ! Assume unmixed atmosphere by default
-     logical                        :: residual_instance = .false.  ! Assume no residual instance by default
+     logical                        :: strictMassBalance   = .false. ! default false
+     logical                        :: proportional_uptake = .false. ! Assume unmixed atmosphere by default
   end type toggles
 
 end module types_mod

@@ -8,9 +8,7 @@
 #
 
 # Toggles
-WellMixedSurfaceExchange_Active:  .false.  # This controls surface uptake behavior for active instances
-WellMixedSurfaceExchange_Passive: .false.  # This controls surface uptake behavior for passive instances
-UseResidual:                      .false.
+Proportional_Uptake: .false.  # This controls surface uptake behavior for passive instances
 
 #not implemented yet H2O_feedback: .true. # feedback water production from CH4 photolysis
 #not implemented yet CH4_feedback: .true. # Increment CH4 due to CH4 photolysis

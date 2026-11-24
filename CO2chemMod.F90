@@ -62,7 +62,6 @@ CONTAINS
     cvfac =  1e-3*met%rho*params%avo/params%airmw ! mol/mol <-> molec/cm3
 !    cvfac =  1e-3*params%AVO*met%rho/28.0104e0 ! kg/kg <-> molec/cm3
 
-    ! Process the prod terms into the residual
     nst = size(CO2inst)
     prod => CO2inst(nst)%prod(:,:,:)
 

@@ -133,10 +133,16 @@ contains
        call ESMF_ConfigGetAttribute(cfg,cntrl%strictMassBalance,rc=status)
        VERIFY_(STATUS)
     endif
-    call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange:',isPresent=present,rc=status)
+    call ESMF_ConfigFindLabel(cfg,label='WellMixeSdurfaceExchange_Active:',isPresent=present,rc=status)
     VERIFY_(STATUS)
     if (present) then
-       call ESMF_ConfigGetAttribute(cfg,cntrl%wellmixed_sfcexch,rc=status)
+       call ESMF_ConfigGetAttribute(cfg,cntrl%active_wellmixed,rc=status)
+       VERIFY_(STATUS)
+    endif
+    call ESMF_ConfigFindLabel(cfg,label='WellMixedSurfaceExchange_Passive:',isPresent=present,rc=status)
+    VERIFY_(STATUS)
+    if (present) then
+       call ESMF_ConfigGetAttribute(cfg,cntrl%passive_wellmixed,rc=status)
        VERIFY_(STATUS)
     endif
     call ESMF_ConfigFindLabel(cfg,label='UseResidual:',isPresent=present,rc=status)
